@@ -1,0 +1,438 @@
+@extends('layouts.parent')
+
+@section('content')
+<div class="container py-4">
+    <!-- Welcome Header -->
+    <div class="welcome-header mb-4">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <p class="text-muted mb-1 small fw-semibold">Selamat Datang,</p>
+                <h2 class="fw-bold text-dark mb-0">{{ Auth::user()->name }}</h2>
+            </div>
+            <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
+                <span class="badge-date">
+                    <i class="bi bi-calendar-event me-2"></i>
+                    {{ \Carbon\Carbon::now()->format('d M Y') }}
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Section Title -->
+    <div class="section-title mb-4">
+        <div class="d-flex align-items-center">
+            <div class="title-indicator"></div>
+            <h5 class="fw-bold text-dark mb-0">Status Anak Hari Ini</h5>
+        </div>
+    </div>
+
+    <!-- Student Cards -->
+    <div class="row">
+        @forelse($students as $student)
+        <div class="col-12 mb-4">
+            <div class="student-card">
+                
+                <!-- Student Header -->
+                <div class="student-header">
+                    <div class="d-flex align-items-center">
+                        <div class="student-avatar me-3">
+                            @if($student->photo)
+                                <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->name }}">
+                            @else
+                                <div class="avatar-placeholder">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                            @endif
+                        </div>
+                        <div class="flex-grow-1">
+                            <h4 class="student-name mb-1">{{ $student->name }}</h4>
+                            <div class="student-location">
+                                <i class="bi bi-geo-alt-fill me-1"></i>
+                                {{ $student->complex->name ?? 'Komplek Tidak Diketahui' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Student Body -->
+                <div class="student-body">
+                    
+                    <!-- Desktop View: Two Columns -->
+                    <div class="d-none d-md-block">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <div class="trip-section border-end-desktop">
+                                    <h6 class="trip-title">
+                                        <i class="bi bi-sunrise-fill me-2"></i>
+                                        Penjemputan (Pagi)
+                                    </h6>
+                                    @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="trip-section">
+                                    <h6 class="trip-title trip-title-afternoon">
+                                        <i class="bi bi-sunset-fill me-2"></i>
+                                        Pengantaran (Sore)
+                                    </h6>
+                                    @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_sore, 'type' => 'Sore'])
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile View: Tabs -->
+                    <div class="d-md-none">
+                        <ul class="nav nav-tabs nav-fill student-tabs mb-3" id="tabs-{{ $student->id }}" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="pagi-tab-{{ $student->id }}" data-bs-toggle="tab" data-bs-target="#pagi-{{ $student->id }}" type="button" role="tab">
+                                    <i class="bi bi-sunrise-fill me-1"></i> Pagi
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="sore-tab-{{ $student->id }}" data-bs-toggle="tab" data-bs-target="#sore-{{ $student->id }}" type="button" role="tab">
+                                    <i class="bi bi-sunset-fill me-1"></i> Sore
+                                </button>
+                            </li>
+                        </ul>
+
+                        <div class="tab-content">
+                            <div class="tab-pane fade show active" id="pagi-{{ $student->id }}" role="tabpanel">
+                                @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
+                            </div>
+                            <div class="tab-pane fade" id="sore-{{ $student->id }}" role="tabpanel">
+                                @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_sore, 'type' => 'Sore'])
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        @empty
+        <div class="col-12">
+            <div class="empty-state">
+                <div class="empty-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h5 class="fw-bold text-dark mb-2">Data Anak Kosong</h5>
+                <p class="text-muted mb-0">Anda belum terhubung dengan data siswa manapun.</p>
+            </div>
+        </div>
+        @endforelse
+    </div>
+    
+    <div style="height: 80px;"></div>
+</div>
+
+<style>
+    /* Welcome Header */
+    .welcome-header {
+        padding: 2rem;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+    }
+
+    .welcome-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #fbbf24);
+    }
+
+    .welcome-header:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+    }
+
+    .badge-date {
+        display: inline-block;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        color: #92400e;
+        padding: 0.6rem 1.5rem;
+        border-radius: 50px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+        transition: all 0.3s ease;
+    }
+
+    .badge-date:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(251, 191, 36, 0.3);
+    }
+
+    /* Section Title */
+    .section-title {
+        padding-left: 0.5rem;
+    }
+
+    .title-indicator {
+        width: 4px;
+        height: 28px;
+        background: linear-gradient(135deg, #2563eb, #1e40af);
+        border-radius: 4px;
+        margin-right: 1rem;
+    }
+
+    /* Student Card */
+    .student-card {
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+    }
+
+    .student-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #fbbf24);
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+
+    .student-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .student-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
+    }
+
+    /* Student Header */
+    .student-header {
+        padding: 2rem 2.5rem;
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border-bottom: 1px solid rgba(37, 99, 235, 0.1);
+    }
+
+    .student-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+        border: 3px solid white;
+        transition: all 0.3s ease;
+    }
+
+    .student-card:hover .student-avatar {
+        transform: scale(1.05) rotate(3deg);
+    }
+
+    .student-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #92400e;
+        font-size: 2.5rem;
+    }
+
+    .student-name {
+        font-size: 1.6rem;
+        font-weight: 800;
+        color: #1e293b;
+        margin: 0;
+        line-height: 1.2;
+    }
+
+    .student-location {
+        color: #64748b;
+        font-size: 0.95rem;
+        font-weight: 500;
+        margin-top: 0.3rem;
+    }
+
+    .student-location i {
+        color: #fbbf24;
+    }
+
+    /* Student Body */
+    .student-body {
+        padding: 2.5rem;
+    }
+
+    /* Trip Section */
+    .trip-section {
+        padding-right: 1.5rem;
+    }
+
+    .border-end-desktop {
+        border-right: 2px solid #e0f2fe;
+    }
+
+    .trip-title {
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #2563eb;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.8rem;
+        border-bottom: 2px solid #e0f2fe;
+        letter-spacing: 0.5px;
+    }
+
+    .trip-title i {
+        color: #fbbf24;
+        font-size: 1.1rem;
+    }
+
+    .trip-title-afternoon {
+        color: #0dcaf0;
+    }
+
+    .trip-title-afternoon i {
+        color: #0dcaf0;
+    }
+
+    /* Mobile Tabs */
+    .student-tabs {
+        border-bottom: 2px solid #e0f2fe;
+        margin-bottom: 1.5rem;
+    }
+
+    .student-tabs .nav-link {
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-weight: 600;
+        padding: 0.8rem 1rem;
+        transition: all 0.3s;
+        position: relative;
+    }
+
+    .student-tabs .nav-link:hover {
+        color: #2563eb;
+        background: transparent;
+    }
+
+    .student-tabs .nav-link.active {
+        color: #2563eb;
+        border-bottom-color: #2563eb;
+        background: transparent;
+    }
+
+    /* Empty State */
+    .empty-state {
+        background: white;
+        border-radius: 24px;
+        padding: 5rem 2rem;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .empty-state::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #2563eb, #fbbf24);
+    }
+
+    .empty-icon {
+        width: 120px;
+        height: 120px;
+        background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 2rem;
+        font-size: 3.5rem;
+        color: #94a3b8;
+        box-shadow: 0 8px 20px rgba(37, 99, 235, 0.1);
+    }
+
+    /* Responsive */
+    @media (max-width: 767.98px) {
+        .welcome-header {
+            padding: 1.5rem;
+        }
+
+        .student-header {
+            padding: 1.5rem;
+        }
+
+        .student-body {
+            padding: 1.5rem;
+        }
+
+        .student-avatar {
+            width: 65px;
+            height: 65px;
+            border-radius: 16px;
+        }
+
+        .student-name {
+            font-size: 1.3rem;
+        }
+
+        .badge-date {
+            font-size: 0.85rem;
+            padding: 0.5rem 1rem;
+        }
+
+        .empty-state {
+            padding: 3.5rem 1.5rem;
+        }
+
+        .empty-icon {
+            width: 90px;
+            height: 90px;
+            font-size: 2.8rem;
+        }
+
+        .trip-title {
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .student-tabs .nav-link {
+            font-size: 0.9rem;
+            padding: 0.7rem 0.8rem;
+        }
+
+        .trip-title {
+            font-size: 0.85rem;
+        }
+
+        .student-name {
+            font-size: 1.15rem;
+        }
+
+        .student-avatar {
+            width: 60px;
+            height: 60px;
+        }
+    }
+</style>
+@endsection

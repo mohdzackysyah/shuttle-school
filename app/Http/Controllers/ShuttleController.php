@@ -1,0 +1,57 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Shuttle;
+use Illuminate\Http\Request;
+
+class ShuttleController extends Controller
+{
+    public function index()
+    {
+        // withCount akan menghitung berapa kali mobil ini muncul di tabel 'schedules'
+        $shuttles = Shuttle::withCount('schedules')->get();
+        return view('shuttles.index', compact('shuttles'));
+    }
+
+    public function create()
+    {
+        return view('shuttles.create');
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'plate_number' => 'required|string|max:20|unique:shuttles',
+            'car_model' => 'required|string|max:100',
+            'capacity' => 'required|integer|min:1',
+        ]);
+
+        Shuttle::create($request->all());
+        return redirect()->route('shuttles.index')->with('success', 'Armada berhasil ditambahkan.');
+    }
+
+    public function edit(Shuttle $shuttle)
+    {
+        return view('shuttles.edit', compact('shuttle'));
+    }
+
+    public function update(Request $request, Shuttle $shuttle)
+    {
+        $request->validate([
+            'plate_number' => 'required|string|max:20|unique:shuttles,plate_number,' . $shuttle->id,
+            'car_model' => 'required|string|max:100',
+            'capacity' => 'required|integer|min:1',
+            'status' => 'required|in:available,maintenance',
+        ]);
+
+        $shuttle->update($request->all());
+        return redirect()->route('shuttles.index')->with('success', 'Armada berhasil diperbarui.');
+    }
+
+    public function destroy(Shuttle $shuttle)
+    {
+        $shuttle->delete();
+        return redirect()->route('shuttles.index')->with('success', 'Armada berhasil dihapus.');
+    }
+}
