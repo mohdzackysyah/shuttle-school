@@ -12,11 +12,13 @@ class Shuttle extends Model
     protected $fillable = [
         'plate_number',
         'car_model',
-        'capacity',
-        'status'
+        'capacity', // Penting untuk validasi jumlah penumpang
+        'status'    // available / maintenance
     ];
 
-    // Relasi ke Jadwal (PENTING UNTUK MENGHITUNG STATUS SIBUK/TIDAK)
+    // --- RELASI JADWAL ---
+    // Digunakan untuk mengecek ketersediaan mobil (Anti-Bentrok)
+    // $shuttle->schedules
     public function schedules()
     {
         return $this->hasMany(Schedule::class);

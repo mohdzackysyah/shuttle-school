@@ -28,4 +28,12 @@ class Student extends Model
     {
         return $this->belongsTo(Complex::class);
     }
+
+    // --- RELASI BARU (PENTING) ---
+    // Relasi Many-to-Many ke Jadwal (via tabel pivot schedule_student)
+    // Digunakan untuk mengecek apakah siswa ini sudah memiliki jadwal atau belum
+    public function schedules()
+    {
+        return $this->belongsToMany(Schedule::class, 'schedule_student');
+    }
 }

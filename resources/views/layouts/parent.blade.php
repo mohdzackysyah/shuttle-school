@@ -47,7 +47,7 @@
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            padding: 1rem 0;
+            padding: 0.8rem 0; /* Padding disesuaikan */
             transition: all 0.3s ease;
         }
 
@@ -63,15 +63,19 @@
             gap: 10px;
             font-size: 1.6rem;
             transition: transform 0.2s;
+            padding: 0; /* Reset padding agar logo pas */
+        }
+
+        /* LOGO STYLING (RESPONSIVE) */
+        .navbar-brand img {
+            height: 50px; /* Ukuran Default Desktop */
+            width: auto;
+            object-fit: contain;
+            transition: all 0.3s ease;
         }
 
         .navbar-brand:hover {
-            transform: scale(1.05);
-        }
-
-        .brand-icon {
-            font-size: 2rem;
-            color: var(--secondary);
+            transform: scale(1.02);
         }
 
         /* User Avatar */
@@ -88,6 +92,7 @@
             font-size: 0.9rem;
             object-fit: cover;
             transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
         }
 
         .user-avatar:hover {
@@ -203,15 +208,12 @@
             }
 
             .navbar {
-                padding: 12px 0;
+                padding: 8px 0; /* Padding lebih tipis di HP */
             }
 
-            .navbar-brand {
-                font-size: 1.3rem;
-            }
-
-            .brand-icon {
-                font-size: 1.6rem;
+            /* Ukuran Logo Mobile */
+            .navbar-brand img {
+                height: 40px; 
             }
 
             .navbar-toggler {
@@ -226,7 +228,7 @@
             .navbar-collapse {
                 background-color: white;
                 position: absolute;
-                top: 70px;
+                top: 60px;
                 left: 0;
                 right: 0;
                 padding: 20px;
@@ -329,38 +331,6 @@
             margin-right: 0.5rem;
         }
 
-        /* Card Styling */
-        .card {
-            border: none;
-            border-radius: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            background-color: white;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            position: relative;
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transform: scaleX(0);
-            transition: transform 0.4s ease;
-        }
-
-        .card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12);
-        }
-
         /* Container Spacing */
         .container {
             max-width: 1200px;
@@ -391,8 +361,8 @@
         <div class="container">
             
             <a class="navbar-brand d-flex align-items-center" href="{{ route('parents.dashboard') }}">
-                <i class="bi bi-bus-front-fill brand-icon"></i>
-                <span>Shuttle<span class="text-primary">App</span></span>
+                {{-- PERUBAHAN LOGO: Menggunakan Gambar --}}
+                <img src="{{ asset('images/logo.png') }}" alt="ShuttleApp">
             </a>
 
             <button class="navbar-toggler border-0 p-2" type="button" data-bs-toggle="collapse" data-bs-target="#parentNav">
@@ -413,7 +383,11 @@
                             <i class="bi bi-people-fill"></i> Data Anak
                         </a>
                     </li>
-
+<li class="nav-item">
+    <a class="nav-link {{ request()->routeIs('parents.history') ? 'active' : '' }}" href="{{ route('parents.history') }}">
+        <i class="bi bi-clock-history"></i> Riwayat
+    </a>
+</li>
                     <!-- Mobile Only Menu Items -->
                     <li class="nav-item d-lg-none">
                         <a class="nav-link {{ request()->routeIs('profile.index') ? 'active' : '' }}" href="{{ route('profile.index') }}">

@@ -5,57 +5,108 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\Trip;
-use App\Models\Route; // <--- Tambahkan ini
+use App\Models\Student;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB; 
 
 class DriverDashboardController extends Controller
 {
     public function index()
     {
-        $today = Carbon::now()->format('l');
-        $todayDate = Carbon::now()->format('Y-m-d');
         $user = Auth::user();
 
         if ($user->role !== 'driver') {
              return redirect('/')->with('error', 'Halaman ini khusus Driver.');
         }
 
-        $schedules = Schedule::with(['route', 'shuttle'])
-                    ->where('driver_id', $user->id)
-                    ->where('day_of_week', $today)
-                    ->orderBy('departure_time')
-                    ->get();
+        Carbon::setLocale('id');
+        $todayIndo = Carbon::now()->isoFormat('dddd'); 
+        $todayEnglish = Carbon::now()->format('l');    
+        $todayDate = Carbon::now()->format('Y-m-d');
 
-        foreach($schedules as $schedule) {
-            $existingTrip = Trip::where('driver_id', $user->id)
-                                ->where('date', $todayDate)
-                                ->where('route_id', $schedule->route_id)
-                                ->where('type', $schedule->type)
-                                ->first();
+        $rawSchedules = Schedule::with(['route', 'shuttle'])
+                        ->where('driver_id', $user->id)
+                        ->where('day_of_week', $todayEnglish)
+                        ->get();
 
-            $schedule->today_trip = $existingTrip;
+        $tasks = collect();
+
+        foreach ($rawSchedules as $sched) {
+            
+            // --- TUGAS 1: JEMPUT PAGI ---
+            if ($sched->pickup_time) {
+                $task = new \stdClass();
+                $task->id = $sched->id; 
+                $task->type = 'pickup';
+                $task->departure_time = $sched->pickup_time;
+                $task->route = $sched->route;
+                $task->shuttle = $sched->shuttle;
+                $task->shuttle_id = $sched->shuttle_id;
+                $task->route_id = $sched->route_id;
+
+                $task->today_trip = Trip::where('driver_id', $user->id)
+                    ->where('date', $todayDate)
+                    ->where('type', 'pickup')
+                    ->where('route_id', $sched->route_id)
+                    ->first();
+
+                $tasks->push($task);
+            }
+
+            // --- TUGAS 2: ANTAR SORE ---
+            if ($sched->dropoff_time) {
+                $task = new \stdClass();
+                $task->id = $sched->id;
+                $task->type = 'dropoff';
+                $task->departure_time = $sched->dropoff_time;
+                $task->route = $sched->route;
+                $task->shuttle = $sched->shuttle;
+                $task->shuttle_id = $sched->shuttle_id;
+                $task->route_id = $sched->route_id;
+
+                $task->today_trip = Trip::where('driver_id', $user->id)
+                    ->where('date', $todayDate)
+                    ->where('type', 'dropoff')
+                    ->where('route_id', $sched->route_id)
+                    ->first();
+
+                $tasks->push($task);
+            }
         }
 
-        return view('driver_dashboard.index', compact('schedules', 'today', 'todayDate'));
+        $schedules = $tasks->sortBy('departure_time');
+
+        return view('driver_dashboard.index', [
+            'schedules' => $schedules,
+            'today' => $todayIndo,
+            'todayDate' => $todayDate
+        ]);
     }
 
-    // --- FUNGSI BARU: DAFTAR PENUMPANG ---
+    // --- DAFTAR PENUMPANG (MY STUDENTS) ---
     public function myStudents()
     {
-        $user = Auth::user();
+        $driverId = Auth::id();
 
-        // 1. Cari ID Rute yang ditugaskan ke driver ini (Berdasarkan Jadwal)
-        // Kita ambil semua rute yang pernah dijadwalkan untuk driver ini
-        $routeIds = Schedule::where('driver_id', $user->id)
-                            ->pluck('route_id')
-                            ->unique();
+        // 1. Ambil ID jadwal
+        $scheduleIds = Schedule::where('driver_id', $driverId)->pluck('id');
 
-        // 2. Ambil Data Rute -> Komplek -> Siswa -> Orang Tua
-        $routes = Route::whereIn('id', $routeIds)
-            ->with(['complexes.students.parent']) 
-            ->get();
+        // 2. Ambil ID siswa dari pivot
+        $studentIds = DB::table('schedule_student')
+                        ->whereIn('schedule_id', $scheduleIds)
+                        ->pluck('student_id')
+                        ->unique();
 
-        return view('driver_dashboard.students', compact('routes'));
+        // 3. Ambil Data Siswa
+        $students = Student::whereIn('id', $studentIds)
+                    ->with(['parent', 'complex']) 
+                    ->get()
+                    ->sortBy(function($student) {
+                        return $student->complex->name ?? 'Z'; 
+                    });
+        
+        // PERBAIKAN DISINI: Mengarah ke 'students' (bukan my_students)
+        return view('driver_dashboard.students', compact('students'));
     }
 }

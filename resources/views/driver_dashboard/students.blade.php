@@ -11,95 +11,87 @@
             </div>
             <div>
                 <h3 class="fw-bold text-dark mb-1">Data Penumpang</h3>
-                <p class="text-muted mb-0">Daftar siswa yang terdaftar di rute Anda</p>
+                <p class="text-muted mb-0">Total {{ $students->count() }} siswa terdaftar dalam tanggungan Anda.</p>
             </div>
         </div>
     </div>
 
-    @forelse($routes as $route)
-        <div class="route-card mb-4">
-            <div class="route-header">
-                <div class="d-flex align-items-center">
-                    <span class="route-badge me-2">
-                        <i class="bi bi-signpost-2-fill me-1"></i> RUTE
-                    </span>
-                    <h5 class="fw-bold text-dark mb-0">{{ $route->name }}</h5>
-                </div>
+    <!-- Container Card (Menggantikan Route Card) -->
+    <div class="route-card mb-4">
+        <div class="route-header">
+            <div class="d-flex align-items-center">
+                <span class="route-badge me-2">
+                    <i class="bi bi-list-check me-1"></i> DAFTAR
+                </span>
+                <h5 class="fw-bold text-dark mb-0">Siswa Langganan</h5>
             </div>
-            
-            <div class="route-body">
-                <div class="students-list">
-                    
-                    {{-- Cek apakah ada siswa di rute ini --}}
-                    @php $hasStudents = false; @endphp
+        </div>
+        
+        <div class="route-body">
+            <div class="students-list">
+                
+                @forelse($students as $student)
+                    <div class="student-item">
+                        <div class="d-flex align-items-center">
+                            
+                            <!-- Student Avatar -->
+                            <div class="student-avatar me-3">
+                                @if($student->photo)
+                                    <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->name }}">
+                                @else
+                                    <div class="avatar-placeholder">
+                                        {{ substr($student->name, 0, 1) }}
+                                    </div>
+                                @endif
+                            </div>
 
-                    {{-- Looping Komplek --}}
-                    @foreach($route->complexes as $complex)
-                        @foreach($complex->students as $student)
-                        @php $hasStudents = true; @endphp
-                        
-                        <div class="student-item">
-                            <div class="d-flex align-items-center">
+                            <!-- Student Info -->
+                            <div class="flex-grow-1 student-info">
+                                <h6 class="student-name">{{ $student->name }}</h6>
                                 
-                                <!-- Student Avatar -->
-                                <div class="student-avatar me-3">
-                                    @if($student->photo)
-                                        <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->name }}">
-                                    @else
-                                        <div class="avatar-placeholder">
-                                            {{ substr($student->name, 0, 1) }}
-                                        </div>
+                                <div class="student-address">
+                                    <i class="bi bi-geo-alt-fill me-1 text-warning"></i>
+                                    {{-- Nama Komplek --}}
+                                    <strong>{{ $student->complex->name ?? 'Komplek ?' }}</strong>
+                                    
+                                    {{-- Detail Alamat --}}
+                                    @if($student->address_note)
+                                        <span class="address-note"> - {{ $student->address_note }}</span>
                                     @endif
                                 </div>
-
-                                <!-- Student Info -->
-                                <div class="flex-grow-1 student-info">
-                                    <h6 class="student-name">{{ $student->name }}</h6>
-                                    <div class="student-address">
-                                        <i class="bi bi-geo-alt-fill me-1"></i>
-                                        {{ $complex->name }}
-                                        @if($student->address_note)
-                                            <span class="address-note">({{ $student->address_note }})</span>
-                                        @endif
-                                    </div>
-                                    <div class="student-parent">
-                                        <i class="bi bi-person-circle me-1"></i>
-                                        Wali: {{ $student->parent->name }}
-                                    </div>
+                                
+                                <div class="student-parent">
+                                    <i class="bi bi-person-circle me-1"></i>
+                                    Wali: {{ $student->parent->name ?? 'Tidak ada data' }}
                                 </div>
+                            </div>
 
-                                <!-- WhatsApp Button -->
-                                <div>
+                            <!-- WhatsApp Button -->
+                            <div>
+                                @if($student->parent && $student->parent->phone)
                                     <a href="https://wa.me/{{ $student->parent->phone }}" target="_blank" class="btn-whatsapp" title="Hubungi via WhatsApp">
                                         <i class="bi bi-whatsapp"></i>
                                     </a>
-                                </div>
-
+                                @else
+                                    <button class="btn btn-secondary rounded-circle d-flex align-items-center justify-content-center" style="width:50px; height:50px; opacity:0.5;" disabled>
+                                        <i class="bi bi-telephone-x fs-4"></i>
+                                    </button>
+                                @endif
                             </div>
-                        </div>
-                        @endforeach
-                    @endforeach
 
+                        </div>
+                    </div>
+                @empty
                     {{-- Jika Kosong --}}
-                    @if(!$hasStudents)
-                        <div class="empty-students">
-                            <i class="bi bi-inbox"></i>
-                            <p>Belum ada siswa terdaftar di rute ini</p>
-                        </div>
-                    @endif
+                    <div class="empty-students">
+                        <i class="bi bi-inbox"></i>
+                        <p>Belum ada siswa yang ditugaskan kepada Anda.</p>
+                    </div>
+                @endforelse
 
-                </div>
             </div>
         </div>
-    @empty
-        <div class="empty-state">
-            <div class="empty-icon">
-                <i class="bi bi-signpost-2"></i>
-            </div>
-            <h5 class="fw-bold text-dark mb-2">Belum Ada Rute Ditugaskan</h5>
-            <p class="text-muted mb-0">Hubungi admin untuk mendapatkan jadwal rute</p>
-        </div>
-    @endforelse
+    </div>
 
     <div style="height: 80px;"></div>
 </div>

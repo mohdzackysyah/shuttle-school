@@ -6,17 +6,17 @@ use App\Models\Schedule;
 use App\Models\User;
 use App\Models\Shuttle;
 use App\Models\Route;
-use App\Models\Complex; // Import Model Complex
+use App\Models\Student;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {
     public function index()
     {
-        // Tampilkan semua jadwal, grouping berdasarkan RUTE
-        $schedules = Schedule::with(['driver', 'route', 'shuttle'])
+        $schedules = Schedule::with(['driver', 'route', 'shuttle', 'students'])
             ->orderByRaw("FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
-            ->orderBy('departure_time')
+            ->orderBy('pickup_time')
             ->get()
             ->groupBy('route_id');
 
@@ -25,179 +25,266 @@ class ScheduleController extends Controller
 
     public function create()
     {
-        $drivers = User::where('role', 'driver')->get();
-        $shuttles = Shuttle::where('status', 'available')->get();
+        // 1. Filter Driver: Hanya yang BELUM punya jadwal apapun
+        $drivers = User::where('role', 'driver')
+                    ->whereDoesntHave('schedules') 
+                    ->get();
+
+        // 2. Filter Mobil: Hanya yang BELUM dipakai di jadwal apapun (Opsional, agar konsisten)
+        $shuttles = Shuttle::where('status', 'available')
+                    ->whereDoesntHave('schedules')
+                    ->get();
+
         $routes = Route::all();
 
         return view('schedules.create', compact('drivers', 'shuttles', 'routes'));
     }
 
-    // --- API UNTUK JAVASCRIPT (LOAD KOMPLEK) ---
-    public function getComplexesByRoute($routeId)
+    // --- API SISWA (FILTER OTOMATIS) ---
+    public function getStudentsByRoute($routeId)
     {
-        $complexes = Complex::where('route_id', $routeId)->get();
-        return response()->json($complexes);
+        $route = Route::with('complexes')->findOrFail($routeId);
+        $complexIds = $route->complexes->pluck('id');
+
+        // LOGIKA BARU: 
+        // Ambil siswa di rute ini YANG BELUM PUNYA JADWAL SAMA SEKALI
+        $students = Student::whereIn('complex_id', $complexIds)
+                    ->whereDoesntHave('schedules') // <--- Filter Anti-Double Booking
+                    ->join('complexes', 'students.complex_id', '=', 'complexes.id')
+                    ->select('students.id', 'students.name', 'students.address_note', 'complexes.name as complex_name')
+                    ->orderBy('complexes.name')
+                    ->orderBy('students.name')
+                    ->get();
+
+        return response()->json($students);
     }
 
-    // --- LOGIKA PENYIMPANAN DENGAN VALIDASI BENTROK & KOMPLEK ---
     public function store(Request $request)
     {
         $request->validate([
             'route_id' => 'required',
             'driver_id' => 'required',
             'shuttle_id' => 'required',
-            'complex_ids' => 'required|array|min:1', // Wajib pilih minimal 1 komplek
+            'student_ids' => 'required|array|min:1',
         ]);
 
         $inputData = $request->input('days');
+        $studentIds = $request->input('student_ids');
+
         if(!$inputData) return back()->with('error', 'Pilih minimal satu hari!');
 
         $count = 0;
-        $conflicts = [];
+        foreach ($inputData as $dayName => $data) {
+            if (isset($data['active']) && $data['active'] == 1) {
+                
+                $pickupTime = $data['pickup_time'] ?? null;
+                $dropoffTime = $data['dropoff_time'] ?? null;
+
+                if (!$pickupTime && !$dropoffTime) continue;
+
+                $schedule = Schedule::create([
+                    'day_of_week' => $dayName,
+                    'pickup_time' => $pickupTime,
+                    'dropoff_time' => $dropoffTime,
+                    'route_id' => $request->route_id,
+                    'driver_id' => $request->driver_id,
+                    'shuttle_id' => $request->shuttle_id,
+                ]);
+
+                $schedule->students()->attach($studentIds);
+                $count++;
+            }
+        }
+
+        return redirect()->route('schedules.index')->with('success', "$count Jadwal berhasil dibuat.");
+    }
+
+    // --- BULK EDIT (LOGIKA CERDAS) ---
+    public function editBulk($routeId)
+    {
+        $schedules = Schedule::where('route_id', $routeId)->get();
+        
+        if ($schedules->isEmpty()) {
+            return back()->with('error', 'Jadwal tidak ditemukan.');
+        }
+
+        $firstSchedule = $schedules->first();
+        $mappedSchedules = $schedules->keyBy('day_of_week');
+
+        // 1. Ambil Siswa Existing (Agar checkbox mereka tetap menyala)
+        $existingStudentIds = DB::table('schedule_student')
+            ->whereIn('schedule_id', $schedules->pluck('id'))
+            ->pluck('student_id')
+            ->unique()
+            ->toArray();
+
+        // 2. Filter Driver: (Yang Bebas) GABUNG (Driver saat ini)
+        $drivers = User::where('role', 'driver')
+            ->where(function($q) use ($firstSchedule) {
+                $q->whereDoesntHave('schedules') // Driver Bebas
+                  ->orWhere('id', $firstSchedule->driver_id); // Driver Saat Ini
+            })->get();
+
+        // 3. Filter Mobil: (Yang Bebas) GABUNG (Mobil saat ini)
+        $shuttles = Shuttle::where(function($q) use ($firstSchedule) {
+                $q->whereDoesntHave('schedules')
+                  ->orWhere('id', $firstSchedule->shuttle_id);
+            })->get();
+        
+        // 4. Filter Siswa: (Yang Bebas) GABUNG (Siswa saat ini)
+        $routeObj = Route::with('complexes')->find($routeId);
+        $complexIds = $routeObj->complexes->pluck('id');
+
+        $availableStudents = Student::whereIn('complex_id', $complexIds)
+            ->where(function($q) use ($existingStudentIds) {
+                $q->whereDoesntHave('schedules') // Siswa Bebas (Anak Baru)
+                  ->orWhereIn('id', $existingStudentIds); // Siswa Lama (Agar tidak hilang)
+            })
+            ->with('complex')
+            ->orderBy('name')
+            ->get();
+
+        return view('schedules.edit-bulk', compact(
+            'firstSchedule',
+            'mappedSchedules',
+            'existingStudentIds',
+            'drivers',
+            'shuttles',
+            'availableStudents'
+        ));
+    }
+
+    public function updateBulk(Request $request, $routeId)
+    {
+        $request->validate([
+            'driver_id' => 'required',
+            'shuttle_id' => 'required',
+            'student_ids' => 'required|array|min:1',
+        ]);
+
+        $inputData = $request->input('days');
+        $studentIds = $request->input('student_ids');
+
+        if(!$inputData) return back()->with('error', 'Pilih minimal satu hari!');
 
         foreach ($inputData as $dayName => $data) {
-            if (isset($data['active'])) {
+            
+            if (isset($data['active']) && $data['active'] == 1) {
                 
-                // Helper Function untuk Simpan & Attach Komplek
-                $saveSchedule = function($type, $time) use ($request, $dayName, &$conflicts, &$count) {
-                    
-                    // Cek Bentrok Dulu
-                    $isBusy = Schedule::where('day_of_week', $dayName)
-                        ->where('departure_time', $time)
-                        ->where(function($q) use ($request) {
-                            $q->where('driver_id', $request->driver_id)
-                              ->orWhere('shuttle_id', $request->shuttle_id);
-                        })
-                        ->exists();
+                $schedule = Schedule::updateOrCreate(
+                    ['route_id' => $routeId, 'day_of_week' => $dayName],
+                    [
+                        'driver_id' => $request->driver_id,
+                        'shuttle_id' => $request->shuttle_id,
+                        'pickup_time' => $data['pickup_time'] ?? null,
+                        'dropoff_time' => $data['dropoff_time'] ?? null,
+                    ]
+                );
 
-                    if ($isBusy) {
-                        $conflicts[] = "Gagal ($dayName - $type): Driver/Mobil sibuk di jam $time";
-                    } else {
-                        // Simpan Jadwal
-                        $schedule = Schedule::create([
-                            'day_of_week' => $dayName,
-                            'departure_time' => $time,
-                            'type' => $type,
-                            'route_id' => $request->route_id,
-                            'driver_id' => $request->driver_id,
-                            'shuttle_id' => $request->shuttle_id,
-                        ]);
+                $schedule->students()->sync($studentIds);
 
-                        // Simpan Komplek yang dipilih (PENTING!)
-                        $schedule->complexes()->attach($request->complex_ids);
-                        
-                        $count++;
-                    }
-                };
-
-                // Proses Jemput
-                if (!empty($data['pickup_time'])) {
-                    $saveSchedule('pickup', $data['pickup_time']);
-                }
-
-                // Proses Antar
-                if (!empty($data['dropoff_time'])) {
-                    $saveSchedule('dropoff', $data['dropoff_time']);
+            } else {
+                $scheduleToDelete = Schedule::where('route_id', $routeId)->where('day_of_week', $dayName)->first();
+                if($scheduleToDelete) {
+                    $scheduleToDelete->students()->detach();
+                    $scheduleToDelete->delete();
                 }
             }
         }
 
-        $redirect = redirect()->route('schedules.index');
-        
-        if ($count > 0) {
-            $redirect->with('success', "$count Jadwal berhasil dibuat.");
-        } else {
-            $redirect->with('error', "Gagal membuat jadwal.");
-        }
-
-        if (count($conflicts) > 0) {
-            $redirect->with('error_list', $conflicts);
-        }
-
-        return $redirect;
+        return redirect()->route('schedules.index')->with('success', 'Rangkaian jadwal diperbarui.');
     }
 
-    // --- CEK KETERSEDIAAN VIA AJAX (JAVASCRIPT) ---
+    // --- SINGLE EDIT ---
+    public function edit($id)
+    {
+        $schedule = Schedule::with('students')->findOrFail($id);
+        
+        // Logic Filter Driver/Mobil/Siswa sama dengan Bulk Edit
+        $drivers = User::where('role', 'driver')
+            ->where(function($q) use ($schedule) {
+                $q->whereDoesntHave('schedules')->orWhere('id', $schedule->driver_id);
+            })->get();
+
+        $shuttles = Shuttle::where(function($q) use ($schedule) {
+                $q->whereDoesntHave('schedules')->orWhere('id', $schedule->shuttle_id);
+            })->get();
+
+        $routes = Route::all();
+
+        $route = Route::with('complexes')->findOrFail($schedule->route_id);
+        $complexIds = $route->complexes->pluck('id');
+        $selectedStudentIds = $schedule->students->pluck('id')->toArray();
+
+        $availableStudents = Student::whereIn('complex_id', $complexIds)
+            ->where(function($q) use ($selectedStudentIds) {
+                $q->whereDoesntHave('schedules')->orWhereIn('id', $selectedStudentIds);
+            })
+            ->with('complex')
+            ->orderBy('name')
+            ->get();
+
+        return view('schedules.edit', compact('schedule', 'drivers', 'shuttles', 'routes', 'availableStudents', 'selectedStudentIds'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $request->validate([
+            'driver_id' => 'required',
+            'shuttle_id' => 'required',
+            'pickup_time' => 'nullable',
+            'dropoff_time' => 'nullable',
+            'student_ids' => 'array',
+        ]);
+
+        $schedule = Schedule::findOrFail($id);
+        
+        $schedule->update([
+            'driver_id' => $request->driver_id,
+            'shuttle_id' => $request->shuttle_id,
+            'pickup_time' => $request->pickup_time,
+            'dropoff_time' => $request->dropoff_time,
+        ]);
+
+        $schedule->students()->sync($request->input('student_ids', []));
+
+        return redirect()->route('schedules.index')->with('success', 'Jadwal hari ini diperbarui.');
+    }
+
+    public function destroy($id)
+    {
+        $schedule = Schedule::findOrFail($id);
+        $schedule->students()->detach();
+        $schedule->delete();
+        return back()->with('success', 'Jadwal dihapus.');
+    }
+
     public function checkAvailability(Request $request)
     {
+        // Validasi bentrok tetap diperlukan untuk memastikan jam tidak tabrakan
+        // meskipun kita sudah memfilter driver di dropdown.
         $driverId = $request->driver_id;
         $shuttleId = $request->shuttle_id;
         $day = $request->day;
         $time = $request->time;
 
         $conflict = Schedule::where('day_of_week', $day)
-            ->where('departure_time', $time)
+            ->where(function($q) use ($time) {
+                $q->where('pickup_time', $time)
+                  ->orWhere('dropoff_time', $time);
+            })
             ->where(function($q) use ($driverId, $shuttleId) {
                 $q->where('driver_id', $driverId)
                   ->orWhere('shuttle_id', $shuttleId);
             })
-            ->with(['driver', 'shuttle', 'route'])
+            ->with(['route'])
             ->first();
 
         if ($conflict) {
-            $msg = "BENTROK! ";
-            if ($conflict->driver_id == $driverId) $msg .= "Driver {$conflict->driver->name} ";
-            if ($conflict->shuttle_id == $shuttleId) $msg .= "& Mobil {$conflict->shuttle->plate_number} ";
-            $msg .= "sudah bertugas di rute {$conflict->route->name}.";
-
+            $msg = "BENTROK! Driver/Mobil sudah ada jadwal di rute {$conflict->route->name} pada jam ini.";
             return response()->json(['status' => 'conflict', 'message' => $msg]);
         }
 
         return response()->json(['status' => 'available']);
-    }
-
-    public function edit($id)
-    {
-        $schedule = Schedule::findOrFail($id);
-        
-        $schedulesOfDay = Schedule::where('day_of_week', $schedule->day_of_week)
-            ->where('route_id', $schedule->route_id)
-            ->get();
-
-        $pickup = $schedulesOfDay->where('type', 'pickup')->first();
-        $dropoff = $schedulesOfDay->where('type', 'dropoff')->first();
-
-        $drivers = User::where('role', 'driver')->get();
-        $shuttles = Shuttle::all();
-        $routes = Route::all();
-
-        return view('schedules.edit', compact('schedule', 'pickup', 'dropoff', 'drivers', 'shuttles', 'routes'));
-    }
-
-    public function update(Request $request, $id)
-    {
-        $originalSchedule = Schedule::findOrFail($id);
-        
-        // Helper Update
-        $updateSchedule = function($type, $time) use ($request, $originalSchedule) {
-            Schedule::updateOrCreate(
-                ['day_of_week' => $originalSchedule->day_of_week, 'route_id' => $request->route_id, 'type' => $type],
-                ['departure_time' => $time, 'driver_id' => $request->driver_id, 'shuttle_id' => $request->shuttle_id]
-            );
-        };
-
-        // Helper Delete
-        $deleteSchedule = function($type) use ($request, $originalSchedule) {
-            Schedule::where('day_of_week', $originalSchedule->day_of_week)
-                ->where('route_id', $originalSchedule->route_id)
-                ->where('type', $type)
-                ->delete();
-        };
-        
-        // Proses Jemput
-        if ($request->pickup_time) $updateSchedule('pickup', $request->pickup_time);
-        else $deleteSchedule('pickup');
-
-        // Proses Antar
-        if ($request->dropoff_time) $updateSchedule('dropoff', $request->dropoff_time);
-        else $deleteSchedule('dropoff');
-
-        return redirect()->route('schedules.index')->with('success', 'Jadwal diperbarui.');
-    }
-
-    public function destroy($id)
-    {
-        Schedule::destroy($id);
-        return back()->with('success', 'Jadwal dihapus.');
     }
 }
