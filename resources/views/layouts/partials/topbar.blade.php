@@ -1,35 +1,79 @@
-<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm mb-4 d-md-none rounded-3 border-bottom">
-    <div class="container-fluid">
+<nav class="navbar navbar-expand navbar-light bg-white border-bottom shadow-sm d-md-none sticky-top px-3" style="height: 70px;">
+    <div class="container-fluid p-0 d-flex justify-content-between align-items-center h-100">
         
-        <button class="btn btn-light border-0 shadow-sm" id="menu-toggle">
-            <i class="bi bi-list fs-3 text-primary"></i>
+        <button class="btn btn-light border-0 p-2 me-2" id="sidebar-toggle-mobile">
+            <i class="bi bi-list fs-2 text-dark"></i>
         </button>
 
-        <span class="navbar-brand ms-3 fw-bold" style="font-size: 1.1rem;">
-            🚌 Shuttle<span class="text-primary">Admin</span>
-        </span>
+        {{-- class mx-auto memastikan logo berada di tengah-tengah persis --}}
+        <a class="navbar-brand d-flex align-items-center mx-auto" href="#">
+            <img src="{{ asset('images/logo.png') }}" alt="Logo" style="height: 40px; width: auto; object-fit: contain;">
+        </a>
 
-        <div class="ms-auto d-flex align-items-center">
-            <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown">
-                    <div class="bg-light rounded-circle d-flex align-items-center justify-content-center border" style="width: 40px; height: 40px;">
-                        <i class="bi bi-person-fill fs-5 text-secondary"></i>
+        <div class="dropdown ms-2">
+            <a href="#" class="d-flex align-items-center text-decoration-none" data-bs-toggle="dropdown" aria-expanded="false">
+                {{-- Logika Foto Profil --}}
+                @if(Auth::user()->photo)
+                    <img src="{{ asset('storage/' . Auth::user()->photo) }}" alt="User" class="rounded-circle border border-2 border-light shadow-sm" style="width: 40px; height: 40px; object-fit: cover;">
+                @else
+                    <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-sm" 
+                         style="width: 40px; height: 40px; background: linear-gradient(135deg, var(--primary), var(--primary-dark)); font-size: 1rem;">
+                        {{ substr(Auth::user()->name ?? 'A', 0, 1) }}
                     </div>
-                </a>
-                <ul class="dropdown-menu dropdown-menu-end border-0 shadow mt-2">
-                    <li><span class="dropdown-item-text text-muted small">{{ Auth::user()->name ?? 'Admin' }}</span></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <form action="{{ route('logout') }}" method="POST">
-                            @csrf
-                            <button type="submit" class="dropdown-item text-danger small">
-                                <i class="bi bi-box-arrow-left"></i> Keluar
-                            </button>
-                        </form>
-                    </li>
-                </ul>
-            </div>
+                @endif
+            </a>
+
+            {{-- Dropdown Menu --}}
+            <ul class="dropdown-menu dropdown-menu-end border-0 shadow-lg rounded-4 mt-3 animate-slide-down p-2">
+                <li class="px-3 py-2 border-bottom mb-2">
+                    <div class="fw-bold text-dark text-truncate" style="max-width: 150px;">{{ Auth::user()->name ?? 'Admin' }}</div>
+                    <small class="text-muted" style="font-size: 0.75rem;">Administrator</small>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-3" href="#">
+                        <i class="bi bi-person me-2 text-primary bg-primary bg-opacity-10 p-1 rounded"></i> Profil Saya
+                    </a>
+                </li>
+                <li>
+                    <a class="dropdown-item py-2 rounded-3" href="#">
+                        <i class="bi bi-gear me-2 text-primary bg-primary bg-opacity-10 p-1 rounded"></i> Pengaturan
+                    </a>
+                </li>
+                <li><hr class="dropdown-divider my-2"></li>
+                <li>
+                    <form action="{{ route('logout') }}" method="POST">
+                        @csrf
+                        <button type="submit" class="dropdown-item py-2 text-danger rounded-3">
+                            <i class="bi bi-box-arrow-right me-2 bg-danger bg-opacity-10 p-1 rounded"></i> Keluar
+                        </button>
+                    </form>
+                </li>
+            </ul>
         </div>
 
     </div>
 </nav>
+
+<style>
+    /* Navbar height fix & centering */
+    .navbar {
+        min-height: 70px; /* Tinggi fix agar stabil */
+    }
+
+    /* Dropdown Item Hover */
+    .dropdown-item:hover {
+        background-color: var(--light);
+        color: var(--primary);
+    }
+
+    /* Animasi Dropdown Halus */
+    .animate-slide-down {
+        animation: slideDownFade 0.25s cubic-bezier(0.25, 0.8, 0.25, 1) forwards;
+        transform-origin: top right;
+    }
+
+    @keyframes slideDownFade {
+        from { opacity: 0; transform: translateY(-15px) scale(0.96); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+</style>

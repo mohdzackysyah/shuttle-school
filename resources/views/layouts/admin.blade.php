@@ -5,355 +5,197 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Panel - Shuttle Sekolah</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+    {{-- Fonts & Icons --}}
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
+            /* Palette Warna */
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
             --secondary: #fbbf24;
-            --dark: #1e293b;
+            --dark: #0f172a;
             --light: #f8fafc;
             --gray: #64748b;
             --success: #10b981;
             --danger: #ef4444;
+
+            /* Ukuran Sidebar */
+            --sidebar-width: 280px;
+            --sidebar-collapsed-width: 80px;
         }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+            background: #f1f5f9;
             overflow-x: hidden;
             color: var(--dark);
             line-height: 1.6;
         }
 
-        /* Smooth Scroll */
-        html {
-            scroll-behavior: smooth;
+        /* --- WRAPPER LAYOUT --- */
+        #wrapper {
+            display: flex;
+            width: 100%;
+            overflow: hidden;
+            transition: all 0.3s ease;
         }
 
-        /* --- 1. SIDEBAR STYLE --- */
+        /* --- SIDEBAR CONTAINER --- */
         #sidebar-wrapper {
-            min-width: 280px;
-            max-width: 280px;
-            background: white;
-            border-right: 1px solid rgba(37, 99, 235, 0.1);
+            width: var(--sidebar-width);
+            min-width: var(--sidebar-width);
+            height: 100vh;
             position: fixed;
             top: 0;
             left: 0;
-            height: 100vh;
             z-index: 1050;
-            transition: all 0.3s ease;
-            overflow-y: auto;
-            box-shadow: 4px 0 20px rgba(0, 0, 0, 0.04);
+            background: white;
+            border-right: 1px solid rgba(79, 70, 229, 0.1);
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex; 
+            flex-direction: column;
         }
 
-        /* Sidebar Header/Logo - SAMA SEPERTI NAVBAR */
-        .sidebar-heading {
-            padding: 2rem 1.5rem;
-            font-size: 1.6rem;
-            font-weight: 800;
-            color: var(--dark);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            border-bottom: 2px solid rgba(37, 99, 235, 0.1);
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            transition: transform 0.2s;
-        }
-
-        .sidebar-heading:hover {
-            transform: scale(1.02);
-        }
-
-        /* Logo Bus Kuning - SAMA PERSIS dengan landing page */
-        .sidebar-heading .brand-icon {
-            font-size: 2rem;
-            color: var(--secondary); /* Kuning #fbbf24 */
-        }
-
-        /* Sidebar Profile Card */
-        .sidebar-profile {
-            padding: 1.5rem;
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            margin: 1rem;
-            border-radius: 16px;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.08);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .sidebar-profile::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 3px;
-            background: linear-gradient(90deg, var(--primary), var(--secondary));
-        }
-
-        .sidebar-profile .profile-avatar {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 700;
-            font-size: 1.5rem;
-            margin: 0 auto 1rem;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-        }
-
-        .sidebar-profile .profile-name {
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--dark);
-            text-align: center;
-            margin-bottom: 0.3rem;
-        }
-
-        .sidebar-profile .profile-role {
-            font-size: 0.85rem;
-            color: var(--gray);
-            text-align: center;
-            font-weight: 500;
-        }
-
-        /* Sidebar Label */
-        .sidebar-label {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            color: var(--gray);
-            padding: 1.5rem 1.5rem 0.8rem;
-            font-weight: 700;
-        }
-
-        /* Menu Items */
-        .list-group-item {
-            border: none;
-            padding: 0.8rem 1.5rem;
-            font-weight: 500;
-            color: var(--gray);
-            font-size: 0.95rem;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 4px;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .list-group-item i {
-            font-size: 1.2rem;
-            width: 24px;
-            text-align: center;
-        }
-
-        .list-group-item:hover {
-            color: var(--primary);
-            background-color: var(--light);
-            padding-left: 2rem;
-        }
-
-        .list-group-item.active {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            color: white;
-            border-radius: 12px;
-            margin: 0 1rem;
-            width: calc(100% - 2rem);
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-        }
-
-        .list-group-item.active:hover {
-            padding-left: 1.5rem;
-        }
-
-        /* --- 2. CONTENT STYLE --- */
+        /* --- CONTENT WRAPPER --- */
         #page-content-wrapper {
             width: 100%;
-            margin-left: 280px;
-            padding: 2rem;
-            transition: all 0.3s ease;
             min-height: 100vh;
+            margin-left: var(--sidebar-width); 
+            padding-top: 10px;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            display: flex;
+            flex-direction: column;
         }
 
-        /* --- 3. OVERLAY --- */
-        #sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(4px);
-            z-index: 1040;
-            opacity: 0;
-            transition: opacity 0.3s ease;
+        .container-fluid {
+            padding: 1.5rem 2rem;
+            flex: 1;
         }
 
-        /* --- 4. RESPONSIVE --- */
+        /* --- LOGIC: DESKTOP MINIMIZE --- */
+        body.sidebar-minimized #sidebar-wrapper {
+            width: var(--sidebar-collapsed-width);
+            min-width: var(--sidebar-collapsed-width);
+        }
+
+        body.sidebar-minimized #page-content-wrapper {
+            margin-left: var(--sidebar-collapsed-width);
+        }
+
+        /* HILANGKAN LOGO SAAT MINIMIZED */
+        body.sidebar-minimized .brand-wrapper {
+            display: none !important;
+        }
+        
+        body.sidebar-minimized .sidebar-heading {
+            justify-content: center;
+            padding: 0;
+        }
+
+        /* Logic Minimized Lainnya */
+        body.sidebar-minimized .menu-text,
+        body.sidebar-minimized .sidebar-label,
+        body.sidebar-minimized .profile-info {
+            display: none !important;
+        }
+
+        body.sidebar-minimized .list-group-item {
+            justify-content: center; padding: 0.8rem 0;
+        }
+        
+        body.sidebar-minimized .profile-card {
+            background: transparent; border: none; padding: 0;
+        }
+        
+        body.sidebar-minimized .profile-img {
+            width: 40px; height: 40px; border-width: 2px;
+        }
+        
+        body.sidebar-minimized .list-group-item:hover::after {
+            content: attr(title);
+            position: absolute; left: 100%; top: 50%;
+            transform: translateY(-50%); background: #1e293b; color: white;
+            padding: 6px 12px; border-radius: 6px; font-size: 0.85rem;
+            z-index: 9999; margin-left: 15px; white-space: nowrap; pointer-events: none;
+        }
+        
+        body.sidebar-minimized .btn-toggle-sidebar i {
+            transform: rotate(180deg);
+        }
+
+        /* --- LOGIC: MOBILE HIDDEN --- */
         @media (max-width: 768px) {
-            #sidebar-wrapper {
-                left: -280px;
-            }
-
             #page-content-wrapper {
-                margin-left: 0;
-                padding: 1rem;
+                margin-left: 0 !important;
+                width: 100%;
             }
 
-            body.sb-sidenav-toggled #sidebar-wrapper {
+            #sidebar-wrapper {
+                left: calc(var(--sidebar-width) * -1); 
+            }
+
+            body.sidebar-mobile-open #sidebar-wrapper {
                 left: 0;
                 box-shadow: 5px 0 25px rgba(0, 0, 0, 0.15);
             }
-
-            body.sb-sidenav-toggled #sidebar-overlay {
-                display: block;
-                opacity: 1;
-            }
-
-            body.sb-sidenav-toggled {
+            
+            body.sidebar-mobile-open {
                 overflow: hidden;
             }
-
-            .sidebar-heading {
-                padding: 1.5rem;
-                font-size: 1.3rem;
-            }
-
-            .sidebar-heading .brand-icon {
-                font-size: 1.6rem;
-            }
         }
 
-        /* Card Styling */
+        /* --- COMPONENTS STYLE --- */
         .card {
-            border: none;
-            border-radius: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
-            background-color: white;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
-            position: relative;
+            border: none; border-radius: 20px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            background-color: white; margin-bottom: 1.5rem;
+            position: relative; overflow: hidden;
         }
-
         .card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 4px;
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px;
             background: linear-gradient(90deg, var(--primary), var(--secondary));
-            transform: scaleX(0);
-            transition: transform 0.4s ease;
         }
-
-        .card:hover::before {
-            transform: scaleX(1);
-        }
-
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
-        }
-
         .card-header {
-            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
-            border-bottom: 2px solid rgba(37, 99, 235, 0.1);
-            padding: 1.5rem;
-            font-weight: 700;
-            font-size: 1.1rem;
-            color: var(--dark);
-            border-radius: 24px 24px 0 0 !important;
+            background-color: white; border-bottom: 1px solid #f1f5f9;
+            padding: 1.25rem 1.5rem; font-weight: 700; font-size: 1.1rem;
         }
 
-        /* Alert Styling */
         .alert {
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
-            padding: 1rem 1.2rem;
-            margin-bottom: 1.5rem;
-            font-weight: 500;
-            animation: slideDown 0.4s ease;
+            border: none; border-radius: 12px; padding: 1rem 1.2rem;
+            margin-bottom: 1.5rem; display: flex; align-items: center;
         }
-
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .alert-success {
-            background: linear-gradient(135deg, #d1fae5, #a7f3d0);
-            color: #065f46;
-            border-left: 4px solid var(--success);
-        }
-
-        .alert-danger {
-            background: linear-gradient(135deg, #fee2e2, #fecaca);
-            color: #991b1b;
-            border-left: 4px solid var(--danger);
-        }
-
-        .alert i {
-            font-size: 1.2rem;
-            margin-right: 0.5rem;
-        }
-
-        /* Scrollbar Styling */
-        #sidebar-wrapper::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        #sidebar-wrapper::-webkit-scrollbar-track {
-            background: var(--light);
-        }
-
-        #sidebar-wrapper::-webkit-scrollbar-thumb {
-            background: linear-gradient(135deg, var(--primary), var(--secondary));
-            border-radius: 10px;
-        }
-
-        #sidebar-wrapper::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, var(--primary-dark), #f59e0b);
-        }
-
-        /* Button Styling */
+        .alert-success { background: #ecfdf5; color: #047857; border-left: 4px solid var(--success); }
+        .alert-danger { background: #fef2f2; color: #b91c1c; border-left: 4px solid var(--danger); }
+        
         .btn-primary {
-            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-            border: none;
-            border-radius: 50px;
-            padding: 0.6rem 1.5rem;
-            font-weight: 600;
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
-            transition: all 0.3s ease;
+            background: var(--primary); border: none; border-radius: 8px;
+            padding: 0.5rem 1.2rem; transition: 0.3s;
+        }
+        .btn-primary:hover {
+            background: var(--primary-dark); transform: translateY(-2px);
         }
 
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+        /* Overlay Mobile */
+        #sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px);
+            z-index: 1040; opacity: 0; transition: opacity 0.3s ease;
+        }
+        body.sidebar-mobile-open #sidebar-overlay { display: block; opacity: 1; }
+
+        /* --- PERBAIKAN FOOTER (LEBIH RAMPING) --- */
+        .main-footer {
+            background: white;
+            border-top: 1px solid #e2e8f0;
+            padding: 0.8rem 0; /* Padding diperkecil agar tipis */
+            margin-top: auto;
+            color: var(--gray);
+            font-size: 0.8rem; /* Font diperkecil sedikit */
         }
     </style>
 </head>
@@ -361,61 +203,91 @@
 
     <div id="sidebar-overlay"></div>
 
-    <div class="d-flex" id="wrapper">
-        
+    <div id="wrapper">
         @include('layouts.partials.sidebar-admin')
 
         <div id="page-content-wrapper">
-            
             @include('layouts.partials.topbar')
 
-            <div class="container-fluid">
+            <div class="container-fluid px-4 py-3">
                 @if(session('success'))
-                    <div class="alert alert-success border-0 shadow-sm rounded-3">
-                        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle-fill me-2 fs-5"></i>
+                        <div>{{ session('success') }}</div>
                     </div>
                 @endif
+                
                 @if(session('error'))
-                    <div class="alert alert-danger border-0 shadow-sm rounded-3">
-                        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-exclamation-triangle-fill me-2 fs-5"></i>
+                        <div>{{ session('error') }}</div>
                     </div>
                 @endif
 
                 @yield('content')
             </div>
+
+            {{-- Footer yang Lebih Ramping --}}
+            <footer class="main-footer">
+                <div class="container-fluid text-center">
+                    <p class="mb-0">
+                        &copy; {{ date('Y') }} <strong>GoSchool</strong>. 
+                        <span class="d-none d-sm-inline opacity-75">All rights reserved.</span>
+                    </p>
+                </div>
+            </footer>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     
     <script>
-        // Ambil elemen
-        const body = document.body;
-        const toggleButton = document.getElementById("menu-toggle");
-        const overlay = document.getElementById("sidebar-overlay");
+        document.addEventListener('DOMContentLoaded', function() {
+            const body = document.body;
+            
+            // Toggle Desktop
+            const desktopToggle = document.getElementById('sidebar-toggle-desktop');
+            if (desktopToggle) {
+                desktopToggle.addEventListener('click', function() {
+                    body.classList.toggle('sidebar-minimized');
+                    localStorage.setItem('sidebarMinimized', body.classList.contains('sidebar-minimized'));
+                });
+            }
+            if (localStorage.getItem('sidebarMinimized') === 'true') {
+                body.classList.add('sidebar-minimized');
+            }
 
-        // Fungsi Buka/Tutup Menu
-        function toggleMenu(e) {
-            if(e) e.preventDefault();
-            body.classList.toggle("sb-sidenav-toggled");
-        }
+            // Toggle Mobile
+            const mobileToggle = document.getElementById('sidebar-toggle-mobile');
+            const overlay = document.getElementById('sidebar-overlay');
+            const legacyToggle = document.getElementById('menu-toggle'); 
+            const activeMobileBtn = mobileToggle || legacyToggle;
 
-        // Event Listener Tombol Hamburger
-        if(toggleButton){
-            toggleButton.addEventListener("click", toggleMenu);
-        }
+            if (activeMobileBtn) {
+                activeMobileBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    body.classList.toggle('sidebar-mobile-open');
+                });
+            }
 
-        // Event Listener Overlay
-        if(overlay){
-            overlay.addEventListener("click", toggleMenu);
-        }
+            if (overlay) {
+                overlay.addEventListener('click', function() {
+                    body.classList.remove('sidebar-mobile-open');
+                });
+            }
 
-        // Auto close menu saat klik menu item di mobile
-        const menuItems = document.querySelectorAll('#sidebar-wrapper .list-group-item');
-        menuItems.forEach(item => {
-            item.addEventListener('click', function() {
-                if(window.innerWidth <= 768) {
-                    toggleMenu();
+            const menuLinks = document.querySelectorAll('#sidebar-wrapper .list-group-item');
+            menuLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    if (window.innerWidth <= 768) {
+                        body.classList.remove('sidebar-mobile-open');
+                    }
+                });
+            });
+
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    body.classList.remove('sidebar-mobile-open');
                 }
             });
         });
