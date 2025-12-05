@@ -86,8 +86,8 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('schedules', ScheduleController::class);
         
         // Fitur Bulk Edit (Edit Rangkaian)
-        Route::get('/schedules/bulk-edit/{route_id}', [ScheduleController::class, 'editBulk'])->name('schedules.editBulk');
-        Route::put('/schedules/bulk-update/{route_id}', [ScheduleController::class, 'updateBulk'])->name('schedules.updateBulk');
+        Route::get('/schedules/bulk-edit/{id}', [ScheduleController::class, 'editBulk'])->name('schedules.editBulk');
+        Route::put('/schedules/bulk-update/{id}', [ScheduleController::class, 'updateBulk'])->name('schedules.updateBulk');
 
         // AJAX Helpers (Cek Bentrok & Komplek)
         Route::post('/check-availability', [ScheduleController::class, 'checkAvailability'])->name('schedules.check');
@@ -122,7 +122,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [ParentDashboardController::class, 'index'])->name('parents.dashboard');
         Route::get('/my-children', [ParentDashboardController::class, 'myChildren'])->name('parents.my_children');
         Route::get('/trip-detail/{passenger_id}', [ParentDashboardController::class, 'showTripDetail'])->name('parents.trip.detail');
-        
+        Route::get('/get-status/{student_id}', [ParentDashboardController::class, 'ajaxStatus'])->name('parents.ajax_status');
+
         // [BARU] Menu Riwayat / Laporan
         Route::get('/history', [ParentDashboardController::class, 'history'])->name('parents.history');
         

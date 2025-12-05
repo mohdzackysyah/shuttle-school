@@ -2,160 +2,261 @@
 
 @section('content')
 <style>
-    .card-task {
-        transition: transform 0.2s, box-shadow 0.2s;
-        border-left: 6px solid #e9ecef; /* Default border */
+    /* --- CSS CLEAN & SAFE --- */
+    
+    /* 1. Header Hero (Safe Container) */
+    .hero-card {
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-radius: 20px;
+        padding: 1.5rem;
+        color: white;
+        box-shadow: 0 8px 24px rgba(37, 99, 235, 0.25);
+        position: relative;
+        overflow: hidden;
+        margin-bottom: 2rem;
     }
-    .card-task:active { transform: scale(0.98); }
-    
-    /* Warna Border Kiri */
-    .border-pickup { border-left-color: #ffc107 !important; } /* Kuning */
-    .border-dropoff { border-left-color: #0dcaf0 !important; } /* Biru Muda */
-    
-    /* Warna Badge Soft */
-    .bg-soft-primary { background-color: #e7f1ff; color: #0d6efd; }
-    .bg-soft-warning { background-color: #fff8e1; color: #d39e00; }
-    .bg-soft-info { background-color: #e0f7fa; color: #00838f; }
-    .bg-soft-success { background-color: #d1e7dd; color: #0f5132; }
-    .bg-soft-secondary { background-color: #e2e3e5; color: #41464b; }
 
-    .task-icon {
-        width: 50px; height: 50px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 12px;
-        font-size: 1.5rem;
+    /* Pola background halus */
+    .hero-bg-pattern {
+        position: absolute;
+        top: 0; right: 0; bottom: 0; left: 0;
+        background-image: radial-gradient(circle at 100% 0%, rgba(255,255,255,0.1) 0%, transparent 50%);
+        pointer-events: none;
     }
+
+    /* 2. Progress Bar Refresh (Di dalam Hero) */
+    .refresh-track {
+        position: absolute; bottom: 0; left: 0; width: 100%; height: 4px;
+        background: rgba(0,0,0,0.1);
+    }
+    .refresh-bar {
+        height: 100%; background: rgba(255,255,255,0.8); width: 0%;
+        transition: width 1s linear;
+        box-shadow: 0 0 10px rgba(255,255,255,0.5);
+    }
+
+    /* 3. Card Task (Lebih Rapi) */
+    .card-task {
+        border: 1px solid #f1f5f9;
+        border-radius: 16px;
+        background: white;
+        box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.02);
+        transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .card-task:active { transform: scale(0.99); }
+
+    /* Header Card Task (Warna Tipe) */
+    .task-header {
+        padding: 1rem 1.25rem;
+        display: flex; justify-content: space-between; align-items: center;
+        border-bottom: 1px solid #f8fafc;
+    }
+    .header-pickup { background-color: #fffbeb; color: #b45309; }
+    .header-dropoff { background-color: #f0f9ff; color: #0369a1; }
+
+    /* Body Card Task */
+    .task-body { padding: 1.25rem; }
+
+    /* 4. Time Display */
+    .time-big { font-size: 2rem; font-weight: 800; line-height: 1; letter-spacing: -1px; color: #1e293b; }
+    .time-label { font-size: 0.75rem; color: #64748b; font-weight: 500; text-transform: uppercase; }
+
+    /* 5. Route Box */
+    .route-box {
+        background: #f8fafc; border-radius: 12px; padding: 1rem;
+        display: flex; align-items: center; gap: 1rem;
+        margin-top: 1rem; margin-bottom: 1rem;
+        border: 1px solid #e2e8f0;
+    }
+    .route-icon {
+        width: 40px; height: 40px; background: white; color: #2563eb;
+        border-radius: 10px; display: flex; align-items: center; justify-content: center;
+        font-size: 1.2rem; box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+
+    /* 6. Button Style */
+    .btn-action {
+        width: 100%; padding: 0.8rem; border-radius: 12px;
+        font-weight: 700; font-size: 0.9rem; border: none;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+        transition: 0.2s;
+    }
+    .btn-start { background: #2563eb; color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+    .btn-continue { background: #10b981; color: white; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3); }
+    .btn-history { background: white; color: #64748b; border: 1px solid #cbd5e1; }
 </style>
 
 <div class="container py-4">
     
-    {{-- Header Dashboard --}}
-    <div class="d-flex justify-content-between align-items-center mb-4 px-1">
-        <div>
-            <small class="text-muted fw-bold text-uppercase ls-1" style="font-size: 0.7rem;">Selamat Bertugas</small>
-            <h3 class="fw-bold text-dark mb-0">{{ Auth::user()->name }}</h3>
-        </div>
-        <div class="text-end">
-            <div class="bg-white shadow-sm px-3 py-2 rounded-3 border border-light">
-                <div class="fw-bold text-dark" style="line-height: 1.1;">{{ \Carbon\Carbon::parse($todayDate)->format('d M') }}</div>
-                <small class="text-primary fw-bold text-uppercase" style="font-size: 0.7rem;">{{ $today }}</small>
+    {{-- 1. HERO SECTION (CARD AMAN) --}}
+    <div class="hero-card">
+        <div class="hero-bg-pattern"></div>
+        
+        <div class="d-flex justify-content-between align-items-center position-relative z-1">
+            {{-- Info Driver --}}
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    <span class="badge bg-white bg-opacity-25 text-white border border-white border-opacity-25 fw-normal px-2 py-1" style="font-size: 0.65rem;">
+                        <i class="bi bi-person-badge-fill me-1"></i> DRIVER
+                    </span>
+                </div>
+                <h4 class="fw-bold mb-0 text-white">{{ Auth::user()->name }}</h4>
             </div>
+
+            {{-- Jam & Tanggal --}}
+            <div class="text-end">
+                <div class="fw-bold text-white fs-2 lh-1 mb-1" id="realtimeClock">--:--</div>
+                <small class="text-white-50 text-uppercase fw-bold" style="font-size: 0.7rem;">
+                    {{ \Carbon\Carbon::parse($todayDate)->isoFormat('dddd, D MMM') }}
+                </small>
+            </div>
+        </div>
+
+        {{-- Progress Bar (Menempel di bawah card) --}}
+        <div class="refresh-track">
+            <div class="refresh-bar" id="refreshBar"></div>
         </div>
     </div>
 
+    {{-- 2. DAFTAR TUGAS --}}
     @if($schedules->isEmpty())
         {{-- State Kosong --}}
-        <div class="card border-0 shadow-sm text-center py-5 rounded-4 mt-4 bg-white">
-            <div class="card-body">
-                <div class="bg-soft-secondary rounded-circle d-inline-flex p-4 mb-3">
-                    <i class="bi bi-cup-hot-fill display-4"></i>
-                </div>
-                <h4 class="fw-bold text-dark">Tidak Ada Jadwal</h4>
-                <p class="text-muted small px-4">Hari ini Anda tidak memiliki tugas antar jemput. Silakan istirahat.</p>
+        <div class="text-center py-5">
+            <div class="bg-light rounded-circle d-inline-flex p-4 mb-3 text-secondary">
+                <i class="bi bi-mug-hot display-4"></i>
             </div>
+            <h6 class="fw-bold text-dark">Jadwal Kosong</h6>
+            <p class="text-muted small">Hari ini tidak ada perjalanan.</p>
         </div>
     @else
-        {{-- Label Daftar --}}
-        <div class="d-flex align-items-center mb-3 px-1">
-            <div class="bg-primary rounded-pill me-2" style="width: 4px; height: 18px;"></div>
-            <h6 class="fw-bold text-secondary mb-0 text-uppercase" style="font-size: 0.8rem; letter-spacing: 0.5px;">Daftar Tugas Hari Ini</h6>
+        <div class="d-flex align-items-center justify-content-between mb-3 px-1">
+            <h6 class="fw-bold text-secondary text-uppercase mb-0 small ls-1">Jadwal Hari Ini</h6>
+            <span class="badge bg-secondary bg-opacity-10 text-secondary">{{ $schedules->count() }} Trip</span>
         </div>
     @endif
 
-    {{-- Loop Schedule --}}
     @foreach($schedules as $schedule)
-        <div class="card card-task border-0 shadow-sm mb-3 rounded-4 overflow-hidden {{ $schedule->type == 'pickup' ? 'border-pickup' : 'border-dropoff' }}">
-            <div class="card-body p-4">
-                
-                {{-- Jam & Badge Tipe --}}
-                <div class="d-flex justify-content-between align-items-start mb-3">
-                    <div>
-                        <h1 class="fw-bold mb-0 text-dark" style="font-size: 2.2rem;">
-                            {{ \Carbon\Carbon::parse($schedule->departure_time)->format('H:i') }}
-                            <span class="fs-6 text-muted fw-normal">WIB</span>
-                        </h1>
-                    </div>
-                    
+        <div class="card-task">
+            {{-- A. HEADER CARD (Warna sesuai tipe) --}}
+            <div class="task-header {{ $schedule->type == 'pickup' ? 'header-pickup' : 'header-dropoff' }}">
+                <div class="d-flex align-items-center gap-2">
                     @if($schedule->type == 'pickup')
-                        <span class="badge bg-soft-warning rounded-pill px-3 py-2 border border-warning border-opacity-25">
-                            <i class="bi bi-sunrise-fill me-1"></i> JEMPUT PAGI
-                        </span>
+                        <i class="bi bi-sun-fill"></i> <span class="fw-bold small">JEMPUT PAGI</span>
                     @else
-                        <span class="badge bg-soft-info rounded-pill px-3 py-2 border border-info border-opacity-25">
-                            <i class="bi bi-sunset-fill me-1"></i> ANTAR SORE
-                        </span>
+                        <i class="bi bi-moon-stars-fill"></i> <span class="fw-bold small">ANTAR SORE</span>
                     @endif
                 </div>
-
-                {{-- Info Rute --}}
-                <div class="d-flex align-items-center mb-4 p-3 bg-light rounded-3 border border-light">
-                    <div class="me-3">
-                        <div class="task-icon bg-white shadow-sm text-primary">
-                            <i class="bi bi-geo-alt-fill"></i>
-                        </div>
-                    </div>
-                    <div class="flex-grow-1">
-                        <small class="text-muted text-uppercase fw-bold" style="font-size: 0.65rem;">Rute Tujuan</small>
-                        <h5 class="fw-bold text-dark mb-1">{{ $schedule->route->name }}</h5>
-                        <div class="d-flex align-items-center text-secondary small">
-                            <i class="bi bi-car-front-fill me-1"></i> 
-                            {{ $schedule->shuttle->car_model }} 
-                            <span class="fw-bold text-dark ms-1">• {{ $schedule->shuttle->plate_number }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {{-- LOGIKA TOMBOL --}}
+                
+                {{-- Status Label Kecil --}}
                 @if($schedule->today_trip)
-                    
-                    {{-- Jika Sudah Selesai --}}
                     @if($schedule->today_trip->status == 'finished')
-                        <div class="d-grid">
-                            <a href="{{ route('driver.trip.history', $schedule->today_trip->id) }}" class="btn btn-outline-secondary py-3 rounded-3 fw-bold border-2 shadow-sm">
-                                <i class="bi bi-clock-history me-2"></i> LIHAT RIWAYAT
-                            </a>
-                        </div>
-                    
-                    {{-- Jika Sedang Aktif / Belum Selesai --}}
-                    @else
-                        <div class="d-grid">
-                            {{-- PERBAIKAN DISINI: Link ke Process Driver (Bukan Admin) --}}
-                            <a href="{{ route('driver.trip.process', $schedule->today_trip->id) }}" class="btn btn-success py-3 rounded-3 fw-bold shadow position-relative overflow-hidden">
-                                <span class="position-relative z-1">
-                                    <i class="bi bi-arrow-repeat me-2"></i> LANJUTKAN TUGAS
-                                </span>
-                                <div class="position-absolute top-0 start-0 w-100 h-100 bg-white opacity-10" style="transform: skewX(-20deg) translateX(-50%);"></div>
-                            </a>
-                        </div>
+                        <span class="badge bg-success"><i class="bi bi-check-lg"></i> Selesai</span>
+                    @elseif($schedule->today_trip->status == 'active')
+                        <span class="badge bg-primary"><span class="spinner-grow spinner-grow-sm" style="width:0.5rem;height:0.5rem;"></span> Jalan</span>
                     @endif
-
                 @else
-                    
-                    {{-- Tombol Mulai (Membuat Trip Baru) --}}
-                    <form action="{{ route('trips.store') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="driver_id" value="{{ Auth::id() }}">
-                        <input type="hidden" name="shuttle_id" value="{{ $schedule->shuttle_id }}">
-                        <input type="hidden" name="route_id" value="{{ $schedule->route_id }}">
-                        <input type="hidden" name="date" value="{{ $todayDate }}">
-                        <input type="hidden" name="type" value="{{ $schedule->type }}">
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary py-3 rounded-3 fw-bold shadow position-relative overflow-hidden">
-                                <div class="d-flex justify-content-between px-4 align-items-center position-relative z-1">
-                                    <span>MULAI PERJALANAN</span>
-                                    <i class="bi bi-play-circle-fill fs-4"></i>
-                                </div>
-                            </button>
-                        </div>
-                    </form>
-
+                    <span class="badge bg-secondary">Menunggu</span>
                 @endif
+            </div>
 
+            <div class="task-body">
+                {{-- B. JAM & TUJUAN --}}
+                <div class="row align-items-center">
+                    <div class="col-4 border-end">
+                        <div class="text-center">
+                            <div class="time-big">{{ \Carbon\Carbon::parse($schedule->departure_time)->format('H:i') }}</div>
+                            <div class="time-label">Berangkat</div>
+                        </div>
+                    </div>
+                    <div class="col-8 ps-4">
+                        <small class="text-muted text-uppercase" style="font-size: 0.65rem;">Rute Tujuan</small>
+                        <div class="fw-bold text-dark text-truncate">{{ $schedule->route->name }}</div>
+                        <div class="small text-secondary text-truncate">
+                            <i class="bi bi-car-front me-1"></i> {{ $schedule->shuttle->plate_number }}
+                        </div>
+                    </div>
+                </div>
+
+                {{-- C. TOMBOL AKSI (Full Width di Bawah) --}}
+                <div class="mt-4">
+                    @if($schedule->today_trip)
+                        @if($schedule->today_trip->status == 'finished')
+                            <a href="{{ route('driver.trip.history', $schedule->today_trip->id) }}" class="btn-action btn-history">
+                                <i class="bi bi-journal-text"></i> Lihat Laporan
+                            </a>
+                        @else
+                            <a href="{{ route('driver.trip.process', $schedule->today_trip->id) }}" class="btn-action btn-continue">
+                                <span class="spinner-grow spinner-grow-sm" role="status" aria-hidden="true"></span>
+                                Lanjutkan Perjalanan
+                            </a>
+                        @endif
+                    @else
+                        <form action="{{ route('trips.store') }}" method="POST">
+                            @csrf
+                            <input type="hidden" name="driver_id" value="{{ Auth::id() }}">
+                            <input type="hidden" name="shuttle_id" value="{{ $schedule->shuttle_id }}">
+                            <input type="hidden" name="route_id" value="{{ $schedule->route_id }}">
+                            <input type="hidden" name="date" value="{{ $todayDate }}">
+                            <input type="hidden" name="type" value="{{ $schedule->type }}">
+                            
+                            <button type="submit" class="btn-action btn-start" onclick="return confirm('Mulai perjalanan rute ini?');">
+                                <i class="bi bi-play-circle-fill"></i> Mulai Perjalanan
+                            </button>
+                        </form>
+                    @endif
+                </div>
             </div>
         </div>
     @endforeach
-    
-    <div style="height: 80px;"></div>
+
+    <div style="height: 60px;"></div> {{-- Spacer Footer --}}
 </div>
+
+{{-- SCRIPT: JAM & REFRESH (5 DETIK) --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Config
+        const refreshTime = 60; 
+        let timeLeft = refreshTime;
+        const progressBar = document.getElementById('refreshBar');
+
+        // Clock Update
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+            const el = document.getElementById('realtimeClock');
+            if(el) el.textContent = timeString;
+        }
+
+        // Auto Refresh Logic
+        function startAutoRefresh() {
+            const timer = setInterval(() => {
+                timeLeft--;
+                if (progressBar) {
+                    progressBar.style.width = ((refreshTime - timeLeft) / refreshTime) * 100 + '%';
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    sessionStorage.setItem('scrollPos', window.scrollY);
+                    window.location.reload();
+                }
+            }, 1000);
+        }
+
+        // Scroll Restore
+        const scrollPos = sessionStorage.getItem('scrollPos');
+        if (scrollPos) {
+            window.scrollTo(0, parseInt(scrollPos));
+            sessionStorage.removeItem('scrollPos');
+        }
+
+        // Init
+        setInterval(updateClock, 1000);
+        updateClock();
+        startAutoRefresh();
+    });
+</script>
 @endsection

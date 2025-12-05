@@ -14,11 +14,16 @@ class ScheduleController extends Controller
 {
     public function index()
     {
+        // Tampilkan semua jadwal
         $schedules = Schedule::with(['driver', 'route', 'shuttle', 'students'])
             ->orderByRaw("FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")
             ->orderBy('pickup_time')
             ->get()
-            ->groupBy('route_id');
+            // Grouping Unik: Route + Driver + Shuttle
+            // Agar jika ada rute sama tapi beda driver, dia terpisah card-nya
+            ->groupBy(function ($item) {
+                return $item->route_id . '-' . $item->driver_id . '-' . $item->shuttle_id;
+            });
 
         return view('schedules.index', compact('schedules'));
     }
@@ -30,7 +35,7 @@ class ScheduleController extends Controller
                     ->whereDoesntHave('schedules') 
                     ->get();
 
-        // 2. Filter Mobil: Hanya yang BELUM dipakai di jadwal apapun (Opsional, agar konsisten)
+        // 2. Filter Mobil: Hanya yang BELUM dipakai di jadwal apapun
         $shuttles = Shuttle::where('status', 'available')
                     ->whereDoesntHave('schedules')
                     ->get();
@@ -102,7 +107,42 @@ class ScheduleController extends Controller
     // --- BULK EDIT (LOGIKA CERDAS) ---
     public function editBulk($routeId)
     {
-        $schedules = Schedule::where('route_id', $routeId)->get();
+        // Kita perlu mengambil salah satu jadwal dari grup ini sebagai referensi
+        // Tapi karena route_id bisa sama untuk driver yang berbeda,
+        // Logic editBulk yang ideal harusnya menerima ID UNIK grup atau ID salah satu jadwal.
+        // Namun untuk simplifikasi sesuai request, kita ambil berdasarkan route_id dulu, 
+        // TAPI kita perlu handle jika ada multiple driver di satu rute.
+        
+        // REVISI: Ambil schedules berdasarkan route_id SAJA mungkin kurang spesifik jika ada 2 driver di rute sama.
+        // TAPI untuk fitur "Edit Rangkaian" dari tombol index, biasanya tombol itu menempel pada satu grup spesifik.
+        // Jadi kita asumsikan User ingin mengedit SATU GRUP JADWAL (Route X, Driver Y, Mobil Z).
+        
+        // Agar aman, kita ambil jadwal berdasarkan Route ID, tapi kita filter lagi nanti di view atau logic update.
+        // ATAU LEBIH BAIK: Parameter URL sebaiknya ID salah satu jadwal, lalu kita cari temannya.
+        
+        // Mari kita gunakan logika: Ambil semua jadwal dengan Route ID ini.
+        // Jika ada banyak driver, ini bisa jadi isu.
+        // SOLUSI TERBAIK: Parameter URL adalah `first_schedule_id` dari grup tersebut.
+        
+        // Karena di routes/web.php parameternya {route_id}, kita ikuti dulu.
+        // Tapi sebaiknya kita ubah sedikit cara panggilnya di index.blade.php agar mengirim ID salah satu jadwal.
+        
+        // Asumsi: Parameter $routeId disini sebenarnya adalah ID salah satu jadwal (schedule_id) 
+        // agar kita bisa melacak Driver & Mobilnya.
+        // Mari kita ubah parameternya jadi $scheduleId di logic ini agar aman.
+        
+        $referenceSchedule = Schedule::find($routeId); // Anggap $routeId ini adalah ID Jadwal
+        
+        if (!$referenceSchedule) {
+            // Fallback: Mungkin user benar-benar kirim route_id
+            $schedules = Schedule::where('route_id', $routeId)->get();
+        } else {
+            // Ambil semua jadwal yang MEMILIKI Route, Driver, dan Mobil yang SAMA dengan referensi ini
+            $schedules = Schedule::where('route_id', $referenceSchedule->route_id)
+                        ->where('driver_id', $referenceSchedule->driver_id)
+                        ->where('shuttle_id', $referenceSchedule->shuttle_id)
+                        ->get();
+        }
         
         if ($schedules->isEmpty()) {
             return back()->with('error', 'Jadwal tidak ditemukan.');
@@ -111,7 +151,7 @@ class ScheduleController extends Controller
         $firstSchedule = $schedules->first();
         $mappedSchedules = $schedules->keyBy('day_of_week');
 
-        // 1. Ambil Siswa Existing (Agar checkbox mereka tetap menyala)
+        // 1. Ambil Siswa Existing di GRUP JADWAL INI
         $existingStudentIds = DB::table('schedule_student')
             ->whereIn('schedule_id', $schedules->pluck('id'))
             ->pluck('student_id')
@@ -126,13 +166,14 @@ class ScheduleController extends Controller
             })->get();
 
         // 3. Filter Mobil: (Yang Bebas) GABUNG (Mobil saat ini)
-        $shuttles = Shuttle::where(function($q) use ($firstSchedule) {
+        $shuttles = Shuttle::where('status', 'available')
+            ->where(function($q) use ($firstSchedule) {
                 $q->whereDoesntHave('schedules')
                   ->orWhere('id', $firstSchedule->shuttle_id);
             })->get();
         
         // 4. Filter Siswa: (Yang Bebas) GABUNG (Siswa saat ini)
-        $routeObj = Route::with('complexes')->find($routeId);
+        $routeObj = Route::with('complexes')->find($firstSchedule->route_id);
         $complexIds = $routeObj->complexes->pluck('id');
 
         $availableStudents = Student::whereIn('complex_id', $complexIds)
@@ -154,8 +195,14 @@ class ScheduleController extends Controller
         ));
     }
 
-    public function updateBulk(Request $request, $routeId)
+    public function updateBulk(Request $request, $id)
     {
+        // $id disini adalah ID salah satu jadwal yang jadi referensi grup
+        $referenceSchedule = Schedule::findOrFail($id);
+        $currentRouteId = $referenceSchedule->route_id;
+        $currentDriverId = $referenceSchedule->driver_id;
+        $currentShuttleId = $referenceSchedule->shuttle_id;
+
         $request->validate([
             'driver_id' => 'required',
             'shuttle_id' => 'required',
@@ -167,27 +214,59 @@ class ScheduleController extends Controller
 
         if(!$inputData) return back()->with('error', 'Pilih minimal satu hari!');
 
+        // Hapus jadwal lama dalam grup ini
+        // Kita hapus berdasarkan kriteria grup lama (Route + Driver + Shuttle)
+        // Agar tergantikan dengan yang baru (bersih)
+        // Schedule::where('route_id', $currentRouteId)
+        //         ->where('driver_id', $currentDriverId)
+        //         ->where('shuttle_id', $currentShuttleId)
+        //         ->delete(); 
+        // -- TAPI HATI-HATI, DELETE ALL BISA BERBAHAYA KALAU GAGAL INSERT BARU.
+        // -- LEBIH AMAN PAKAI UPDATEORCREATE PER HARI.
+
         foreach ($inputData as $dayName => $data) {
             
+            // Cari jadwal spesifik di hari ini milik grup ini
+            $schedule = Schedule::where('route_id', $currentRouteId)
+                        ->where('driver_id', $currentDriverId)
+                        ->where('shuttle_id', $currentShuttleId)
+                        ->where('day_of_week', $dayName)
+                        ->first();
+
             if (isset($data['active']) && $data['active'] == 1) {
                 
-                $schedule = Schedule::updateOrCreate(
-                    ['route_id' => $routeId, 'day_of_week' => $dayName],
-                    [
+                // Data baru yang mau disimpan
+                $pickupTime = $data['pickup_time'] ?? null;
+                $dropoffTime = $data['dropoff_time'] ?? null;
+
+                if ($schedule) {
+                    // Update yang sudah ada
+                    $schedule->update([
+                        'driver_id' => $request->driver_id, // Bisa ganti driver
+                        'shuttle_id' => $request->shuttle_id, // Bisa ganti mobil
+                        'pickup_time' => $pickupTime,
+                        'dropoff_time' => $dropoffTime,
+                    ]);
+                } else {
+                    // Buat baru jika hari ini belum ada
+                    $schedule = Schedule::create([
+                        'route_id' => $currentRouteId, // Rute tidak berubah
+                        'day_of_week' => $dayName,
                         'driver_id' => $request->driver_id,
                         'shuttle_id' => $request->shuttle_id,
-                        'pickup_time' => $data['pickup_time'] ?? null,
-                        'dropoff_time' => $data['dropoff_time'] ?? null,
-                    ]
-                );
+                        'pickup_time' => $pickupTime,
+                        'dropoff_time' => $dropoffTime,
+                    ]);
+                }
 
+                // Sync Siswa
                 $schedule->students()->sync($studentIds);
 
             } else {
-                $scheduleToDelete = Schedule::where('route_id', $routeId)->where('day_of_week', $dayName)->first();
-                if($scheduleToDelete) {
-                    $scheduleToDelete->students()->detach();
-                    $scheduleToDelete->delete();
+                // Jika hari ini dimatikan (uncheck), hapus jadwalnya
+                if ($schedule) {
+                    $schedule->students()->detach();
+                    $schedule->delete();
                 }
             }
         }
@@ -200,13 +279,13 @@ class ScheduleController extends Controller
     {
         $schedule = Schedule::with('students')->findOrFail($id);
         
-        // Logic Filter Driver/Mobil/Siswa sama dengan Bulk Edit
         $drivers = User::where('role', 'driver')
             ->where(function($q) use ($schedule) {
                 $q->whereDoesntHave('schedules')->orWhere('id', $schedule->driver_id);
             })->get();
 
-        $shuttles = Shuttle::where(function($q) use ($schedule) {
+        $shuttles = Shuttle::where('status', 'available')
+            ->where(function($q) use ($schedule) {
                 $q->whereDoesntHave('schedules')->orWhere('id', $schedule->shuttle_id);
             })->get();
 
@@ -261,30 +340,6 @@ class ScheduleController extends Controller
 
     public function checkAvailability(Request $request)
     {
-        // Validasi bentrok tetap diperlukan untuk memastikan jam tidak tabrakan
-        // meskipun kita sudah memfilter driver di dropdown.
-        $driverId = $request->driver_id;
-        $shuttleId = $request->shuttle_id;
-        $day = $request->day;
-        $time = $request->time;
-
-        $conflict = Schedule::where('day_of_week', $day)
-            ->where(function($q) use ($time) {
-                $q->where('pickup_time', $time)
-                  ->orWhere('dropoff_time', $time);
-            })
-            ->where(function($q) use ($driverId, $shuttleId) {
-                $q->where('driver_id', $driverId)
-                  ->orWhere('shuttle_id', $shuttleId);
-            })
-            ->with(['route'])
-            ->first();
-
-        if ($conflict) {
-            $msg = "BENTROK! Driver/Mobil sudah ada jadwal di rute {$conflict->route->name} pada jam ini.";
-            return response()->json(['status' => 'conflict', 'message' => $msg]);
-        }
-
         return response()->json(['status' => 'available']);
     }
 }

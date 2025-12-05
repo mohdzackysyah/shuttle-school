@@ -2,177 +2,287 @@
 
 @section('content')
 <style>
-    body { background-color: #f8f9fa; }
+    body { background-color: #f1f5f9; font-family: 'Poppins', sans-serif; }
     
-    .card-custom {
-        background: white;
-        border: none;
-        border-radius: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-        margin-bottom: 20px;
+    /* 1. Sticky Header */
+    .sticky-header {
+        position: sticky; top: 0; z-index: 1020;
+        background: rgba(255, 255, 255, 0.98);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+        margin-left: -12px; margin-right: -12px;
+        padding: 1.25rem 1.5rem;
     }
 
-    /* TOMBOL KUNING (NAIK) */
-    .btn-pickup {
-        background-color: #ffc107;
-        color: #000;
-        font-weight: 800;
-        border: none;
-        width: 100%;
-        padding: 12px;
-        border-radius: 6px;
-        font-size: 0.95rem;
+    /* 2. Loading Bar */
+    .refresh-track {
+        position: absolute; top: 0; left: 0; width: 100%; height: 4px;
+        background: #f1f5f9;
+    }
+    .refresh-bar {
+        height: 100%; background: #2563eb; width: 0%;
+        transition: width 1s linear;
+    }
+
+    /* 3. Card Siswa */
+    .card-student {
+        background: white; border: none; border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        margin-bottom: 1rem; position: relative; overflow: hidden;
+        transition: transform 0.2s;
+        border: 1px solid #f1f5f9;
+    }
+    .card-student:active { transform: scale(0.98); }
+
+    /* Indikator Status */
+    .status-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
+    .stripe-pending { background: #cbd5e1; }
+    .stripe-active { background: #f59e0b; }
+    .stripe-done { background: #10b981; }
+    .stripe-skip { background: #ef4444; }
+
+    /* Background Card */
+    .bg-done { background-color: #f0fdf4; border-color: #bbf7d0; }
+    .bg-skip { background-color: #fef2f2; border-color: #fecaca; opacity: 0.8; }
+    .bg-active { background-color: #fffbeb; border-color: #fde68a; }
+
+    /* Avatar */
+    .avatar-circle {
+        width: 45px; height: 45px;
+        background: #f1f5f9; color: #64748b;
+        border-radius: 50%; font-weight: 700;
         display: flex; align-items: center; justify-content: center;
-        text-transform: uppercase;
+        font-size: 1.1rem; border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
     }
-    .btn-pickup:hover { background-color: #e0a800; }
 
-    /* TOMBOL HIJAU (TURUN/SAMPAI) - BARU */
-    .btn-dropoff {
-        background-color: #198754; /* Hijau Bootstrap */
-        color: #fff;
-        font-weight: 800;
+    /* Tombol Aksi */
+    .btn-action {
+        width: 100%; border: none; border-radius: 10px;
+        padding: 12px; font-weight: 700; font-size: 0.9rem;
+        display: flex; align-items: center; justify-content: center; gap: 8px;
+        text-transform: uppercase; letter-spacing: 0.5px;
+        transition: 0.2s;
+    }
+    
+    .btn-pickup { background: #f59e0b; color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2); }
+    .btn-pickup:active { background: #d97706; transform: translateY(2px); }
+
+    .btn-dropoff { background: #10b981; color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
+    .btn-dropoff:active { background: #059669; transform: translateY(2px); }
+
+    .btn-skip { background: white; color: #ef4444; border: 1px solid #fee2e2; }
+    .btn-skip:active { background: #fef2f2; }
+
+    /* Tombol Selesai Header */
+    .btn-finish-header {
+        background: #1e293b; color: white;
+        border-radius: 50px; padding: 0.6rem 1.5rem;
+        font-weight: 600; font-size: 0.85rem;
+        display: flex; align-items: center; gap: 0.5rem;
+        box-shadow: 0 4px 12px rgba(30, 41, 59, 0.2);
         border: none;
-        width: 100%;
-        padding: 12px;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        display: flex; align-items: center; justify-content: center;
-        text-transform: uppercase;
     }
-    .btn-dropoff:hover { background-color: #157347; }
-
-    /* TOMBOL SKIP */
-    .btn-skip {
-        background-color: #fff;
-        color: #dc3545;
-        border: 1px solid #dc3545;
-        font-weight: 700;
-        width: 100%;
-        padding: 12px;
-        border-radius: 6px;
-        font-size: 0.95rem;
-        text-transform: uppercase;
-    }
-    .btn-skip:hover { background-color: #fef2f2; }
-
-    .icon-small { width: 16px; height: 16px; color: #6c757d; margin-right: 6px; vertical-align: text-bottom; }
-    .text-data { color: #495057; font-size: 0.95rem; }
+    .btn-finish-header:active { transform: scale(0.95); }
 </style>
 
-<div class="container py-4">
+{{-- Kalkulasi Progress (Menggunakan variabel $passengers dari Controller) --}}
+@php
+    $total = $passengers->count();
+    // Hitung status != pending
+    $done = $passengers->filter(function($p) {
+        return $p->status != 'pending';
+    })->count();
+    
+    $percent = $total > 0 ? ($done/$total)*100 : 0;
+@endphp
 
-    {{-- ALERT SUKSES --}}
-    @if(session('success'))
-    <div class="alert alert-success border-0 shadow-sm rounded-3 mb-4 d-flex align-items-center" style="background-color: #d1e7dd; color: #0f5132;">
-        <div class="fw-bold">✅ {{ session('success') }}</div>
-    </div>
-    @endif
+<div class="container pb-5">
 
-    {{-- CARD RUTE --}}
-    <div class="card-custom p-4">
-        <div class="d-flex justify-content-between align-items-center">
-            <div>
-                <h4 class="fw-bold text-dark mb-1">{{ $trip->route->name ?? 'Rute' }}</h4>
-                @if($trip->type == 'pickup')
-                    <span class="badge bg-warning text-dark border border-warning rounded-2">☀ JEMPUT PAGI</span>
-                @else
-                    <span class="badge bg-info text-white rounded-2">🌙 ANTAR SORE</span>
-                @endif
+    {{-- 1. STICKY HEADER --}}
+    <div class="sticky-header mb-4">
+        <div class="refresh-track"><div class="refresh-bar" id="refreshBar"></div></div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div style="flex: 1; min-width: 0; margin-right: 15px;">
+                <div class="d-flex align-items-center gap-2 mb-1">
+                    @if($trip->type == 'pickup')
+                        <span class="badge bg-warning text-dark rounded-pill" style="font-size: 0.65rem;">
+                            <i class="bi bi-sun-fill me-1"></i> PAGI
+                        </span>
+                    @else
+                        <span class="badge bg-info text-white rounded-pill" style="font-size: 0.65rem;">
+                            <i class="bi bi-moon-fill me-1"></i> SORE
+                        </span>
+                    @endif
+                    <span class="text-secondary small fw-bold" id="realtimeClock">--:--</span>
+                </div>
+                <h5 class="fw-bold text-dark mb-0 text-truncate">{{ $trip->route->name ?? 'Nama Rute' }}</h5>
             </div>
             
-            {{-- Tombol Finish Global --}}
-            <form action="{{ route('driver.trip.finish', $trip->id) }}" method="POST" onsubmit="return confirm('Apakah semua siswa sudah diantar? Selesaikan sesi ini?');">
+            <form action="{{ route('driver.trip.finish', $trip->id) }}" method="POST" onsubmit="return confirm('Selesaikan seluruh perjalanan ini?');">
                 @csrf
-                <button type="submit" class="btn btn-dark fw-bold text-white px-3 py-2 rounded-3">
-                     🏁 SELESAI
+                <button type="submit" class="btn-finish-header">
+                    <i class="bi bi-flag-fill text-warning"></i> Selesai
                 </button>
             </form>
         </div>
+
+        {{-- Progress Bar --}}
+        <div class="d-flex align-items-center gap-2 mt-2">
+            <div class="progress flex-grow-1" style="height: 6px; border-radius: 10px; background: #f1f5f9;">
+                <div class="progress-bar bg-success" role="progressbar" style="width: {{ $percent }}%"></div>
+            </div>
+            <small class="fw-bold text-muted" style="font-size: 0.75rem;">{{ $done }}/{{ $total }} Siswa</small>
+        </div>
     </div>
 
-    {{-- LIST SISWA --}}
-    @foreach($passengers as $p)
-    <div class="card-custom p-4">
-        
-        {{-- HEADER: NAMA & STATUS --}}
-        <div class="d-flex justify-content-between align-items-start mb-2">
-            <h5 class="fw-bold text-dark m-0">{{ $p->student->name }}</h5>
-            
-            {{-- Logic Badge Status --}}
-            @if($p->status == 'pending')
-                <span class="badge bg-secondary">⏳ Menunggu</span>
-            @elseif($p->status == 'picked_up')
-                {{-- Jika Sore: Tampilkan "Di dalam Mobil" --}}
-                @if($trip->type == 'dropoff')
-                    <span class="badge bg-info text-dark">🚌 Di Mobil</span>
-                @else
-                    <span class="badge bg-success">✅ Sudah Naik</span>
-                @endif
-            @elseif($p->status == 'skipped')
-                <span class="badge bg-danger">🚫 Skip</span>
-            @else
-                <span class="badge bg-primary">🏠 Sampai Rumah</span>
-            @endif
+    {{-- Alert Sukses --}}
+    @if(session('success'))
+        <div class="alert alert-success border-0 shadow-sm rounded-3 d-flex align-items-center mb-3 py-2 px-3">
+            <i class="bi bi-check-circle-fill fs-5 me-2"></i>
+            <div class="small fw-bold ms-2">{{ session('success') }}</div>
         </div>
+    @endif
 
-        {{-- DETAIL ALAMAT --}}
-        <div class="mb-4 ps-1">
-            <div class="mb-1 text-data d-flex align-items-start">
-                <svg class="icon-small flex-shrink-0 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                <span>
-                    <strong>{{ $p->student->complex->name ?? 'Komplek ?' }}</strong><br>
-                    <span class="text-muted small">{{ $p->student->address_note ?? '-' }}</span>
-                </span>
-            </div>
-            <div class="text-data d-flex align-items-center">
-                <svg class="icon-small flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                <span>Ortu: {{ $p->student->parent->phone ?? '-' }}</span>
-            </div>
-        </div>
+    {{-- 2. LIST KARTU SISWA --}}
+    <div class="pb-5 mb-5">
+        @forelse($passengers as $p)
+            @php
+                // Logika Warna berdasarkan Status
+                $stripeClass = 'stripe-pending';
+                $cardBg = 'bg-white';
+                
+                if($p->status == 'picked_up') {
+                    $stripeClass = 'stripe-active';
+                    // Jika sore (dropoff), yang statusnya picked_up kita highlight kuning (ready to drop)
+                    if($trip->type != 'pickup') $cardBg = 'bg-active'; 
+                } 
+                elseif($p->status == 'dropped_off') {
+                    $stripeClass = 'stripe-done'; $cardBg = 'bg-done'; 
+                }
+                elseif($p->status == 'skipped') {
+                    $stripeClass = 'stripe-skip'; $cardBg = 'bg-skip'; 
+                }
+            @endphp
 
-        {{-- LOGIKA TOMBOL AKSI --}}
-        
-        {{-- KONDISI 1: Belum Naik (Berlaku Pagi & Sore) --}}
-        @if($p->status == 'pending')
-            <div class="row g-2">
-                <div class="col-8">
-                    <form action="{{ route('driver.passenger.pickup', $p->id) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn-pickup shadow-sm">
-                            <svg style="width:18px; height:18px; margin-right:6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14"></path></svg>
-                            NAIK (JEMPUT)
-                        </button>
-                    </form>
+            <div class="card-student p-3 {{ $cardBg }}">
+                <div class="status-stripe {{ $stripeClass }}"></div>
+                
+                {{-- Info Siswa --}}
+                <div class="d-flex align-items-center mb-3 ps-2">
+                    <div class="me-3">
+                        @if($p->student->photo)
+                            <img src="{{ asset('storage/'.$p->student->photo) }}" class="rounded-circle" style="width: 45px; height: 45px; object-fit: cover;">
+                        @else
+                            <div class="avatar-circle">
+                                {{ substr($p->student->name, 0, 1) }}
+                            </div>
+                        @endif
+                    </div>
+                    
+                    <div class="flex-grow-1" style="min-width: 0;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <h6 class="fw-bold text-dark mb-0 text-truncate">{{ $p->student->name }}</h6>
+                            
+                            {{-- Badge Status --}}
+                            @if($p->status == 'picked_up')
+                                <span class="badge bg-warning text-dark rounded-pill" style="font-size:0.6rem;">NAIK</span>
+                            @elseif($p->status == 'dropped_off')
+                                <span class="badge bg-success rounded-pill" style="font-size:0.6rem;">SAMPAI</span>
+                            @elseif($p->status == 'skipped')
+                                <span class="badge bg-danger rounded-pill" style="font-size:0.6rem;">SKIP</span>
+                            @endif
+                        </div>
+                        <div class="d-flex align-items-center text-muted small">
+                            <i class="bi bi-geo-alt-fill text-danger me-1" style="font-size: 0.7rem;"></i>
+                            <span class="text-truncate">
+                                {{ $p->student->complex->name ?? 'Umum' }}
+                            </span>
+                        </div>
+                    </div>
                 </div>
-                <div class="col-4">
-                    <form action="{{ route('driver.passenger.skip', $p->id) }}" method="POST" onsubmit="return confirm('Lewati siswa ini?');">
-                        @csrf
-                        <button type="submit" class="btn-skip">SKIP</button>
-                    </form>
+
+                {{-- TOMBOL AKSI --}}
+                <div class="ps-2">
+                    {{-- 1. Belum Dijemput --}}
+                    @if($p->status == 'pending')
+                        <div class="row g-2">
+                            <div class="col-8">
+                                <form action="{{ route('driver.passenger.pickup', $p->id) }}" method="POST">
+                                    @csrf
+                                    <button type="submit" class="btn-action btn-pickup">
+                                        <i class="bi bi-box-arrow-in-right fs-5"></i> JEMPUT (NAIK)
+                                    </button>
+                                </form>
+                            </div>
+                            <div class="col-4">
+                                <form action="{{ route('driver.passenger.skip', $p->id) }}" method="POST" onsubmit="return confirm('Lewati siswa ini?');">
+                                    @csrf
+                                    <button type="submit" class="btn-action btn-skip">SKIP</button>
+                                </form>
+                            </div>
+                        </div>
+
+                    {{-- 2. Sudah Naik & Perjalanan Sore (Tombol Turun) --}}
+                    @elseif($p->status == 'picked_up' && $trip->type != 'pickup') 
+                        <form action="{{ route('driver.passenger.dropoff', $p->id) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn-action btn-dropoff">
+                                <i class="bi bi-house-check-fill fs-5"></i> TURUN (SAMPAI)
+                            </button>
+                        </form>
+                    @endif
                 </div>
             </div>
-
-        {{-- KONDISI 2: Sudah Naik & Ini adalah ANTAR SORE (dropoff) --}}
-        {{-- Munculkan tombol TURUN hanya jika tipe trip bukan pickup (pagi) --}}
-        @elseif($p->status == 'picked_up' && $trip->type != 'pickup')
-            <div class="row">
-                <div class="col-12">
-                    <form action="{{ route('driver.passenger.dropoff', $p->id) }}" method="POST">
-                        @csrf
-                        <button type="submit" class="btn-dropoff shadow-sm">
-                            <svg style="width:18px; height:18px; margin-right:6px;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path></svg>
-                            TURUN (SAMPAI RUMAH)
-                        </button>
-                    </form>
-                </div>
+        @empty
+            <div class="text-center py-5">
+                <i class="bi bi-people text-muted display-1 opacity-25"></i>
+                <p class="text-muted mt-3">Tidak ada data penumpang.</p>
             </div>
-
-        @endif
-
+        @endforelse
     </div>
-    @endforeach
-
-    <div style="height: 100px;"></div>
 </div>
+
+{{-- SCRIPT: Auto Refresh & Jam --}}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const refreshTime = 5; 
+        let timeLeft = refreshTime;
+        const progressBar = document.getElementById('refreshBar');
+
+        function updateClock() {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' }).replace(/\./g, ':');
+            const el = document.getElementById('realtimeClock');
+            if(el) el.textContent = timeString;
+        }
+
+        function startAutoRefresh() {
+            const timer = setInterval(() => {
+                timeLeft--;
+                if (progressBar) {
+                    progressBar.style.width = ((refreshTime - timeLeft) / refreshTime) * 100 + '%';
+                }
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    sessionStorage.setItem('scrollPos', window.scrollY);
+                    window.location.reload();
+                }
+            }, 1000);
+        }
+
+        const scrollPos = sessionStorage.getItem('scrollPos');
+        if (scrollPos) {
+            window.scrollTo(0, parseInt(scrollPos));
+            sessionStorage.removeItem('scrollPos');
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+        startAutoRefresh();
+    });
+</script>
 @endsection

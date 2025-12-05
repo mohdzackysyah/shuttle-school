@@ -2,7 +2,6 @@
 
 @section('content')
 <div class="container py-4">
-    <!-- Welcome Header -->
     <div class="welcome-header mb-4">
         <div class="row align-items-center">
             <div class="col-lg-8">
@@ -18,109 +17,121 @@
         </div>
     </div>
 
-    <!-- Section Title -->
     <div class="section-title mb-4">
         <div class="d-flex align-items-center">
             <div class="title-indicator"></div>
             <h5 class="fw-bold text-dark mb-0">Status Anak Hari Ini</h5>
+            <div id="loading-indicator" class="ms-auto text-primary small d-none">
+                <div class="spinner-border spinner-border-sm" role="status"></div>
+                <span class="ms-1">Memperbarui...</span>
+            </div>
         </div>
     </div>
 
-    <!-- Student Cards -->
-    <div class="row">
-        @forelse($students as $student)
-        <div class="col-12 mb-4">
-            <div class="student-card">
-                
-                <!-- Student Header -->
-                <div class="student-header">
-                    <div class="d-flex align-items-center">
-                        <div class="student-avatar me-3">
-                            @if($student->photo)
-                                <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->name }}">
-                            @else
-                                <div class="avatar-placeholder">
-                                    <i class="bi bi-person-fill"></i>
+    <div id="auto-refresh-container">
+        <div class="row">
+            @forelse($students as $student)
+            <div class="col-12 mb-4">
+                <div class="student-card">
+                    
+                    <div class="student-header">
+                        <div class="d-flex align-items-center">
+                            <div class="student-avatar me-3">
+                                @if($student->photo)
+                                    <img src="{{ asset('storage/' . $student->photo) }}" alt="{{ $student->name }}">
+                                @else
+                                    <div class="avatar-placeholder">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                @endif
+                            </div>
+                            <div class="flex-grow-1">
+                                <h4 class="student-name mb-1">{{ $student->name }}</h4>
+                                <div class="student-location">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>
+                                    {{ $student->complex->name ?? 'Komplek Tidak Diketahui' }}
                                 </div>
-                            @endif
-                        </div>
-                        <div class="flex-grow-1">
-                            <h4 class="student-name mb-1">{{ $student->name }}</h4>
-                            <div class="student-location">
-                                <i class="bi bi-geo-alt-fill me-1"></i>
-                                {{ $student->complex->name ?? 'Komplek Tidak Diketahui' }}
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- Student Body -->
-                <div class="student-body">
-                    
-                    <!-- Desktop View: Two Columns -->
-                    <div class="d-none d-md-block">
-                        <div class="row g-4">
-                            <div class="col-md-6">
-                                <div class="trip-section border-end-desktop">
-                                    <h6 class="trip-title">
-                                        <i class="bi bi-sunrise-fill me-2"></i>
-                                        Penjemputan (Pagi)
-                                    </h6>
-                                    @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
+                    <div class="student-body">
+                        
+                        <div class="d-none d-md-block">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="trip-section border-end-desktop">
+                                        <h6 class="trip-title">
+                                            <i class="bi bi-sunrise-fill me-2"></i>
+                                            Penjemputan (Pagi)
+                                        </h6>
+                                        @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <div class="trip-section">
+                                        <h6 class="trip-title trip-title-afternoon">
+                                            <i class="bi bi-sunset-fill me-2"></i>
+                                            Pengantaran (Sore)
+                                        </h6>
+                                        @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_sore, 'type' => 'Sore'])
+                                    </div>
                                 </div>
                             </div>
+                        </div>
 
-                            <div class="col-md-6">
-                                <div class="trip-section">
-                                    <h6 class="trip-title trip-title-afternoon">
-                                        <i class="bi bi-sunset-fill me-2"></i>
-                                        Pengantaran (Sore)
-                                    </h6>
+                        <div class="d-md-none">
+                            <ul class="nav nav-tabs nav-fill student-tabs mb-3" id="tabs-{{ $student->id }}" role="tablist">
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link active tab-trigger" 
+                                            id="pagi-tab-{{ $student->id }}" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#pagi-{{ $student->id }}" 
+                                            data-student-id="{{ $student->id }}"
+                                            data-type="pagi"
+                                            type="button" role="tab">
+                                        <i class="bi bi-sunrise-fill me-1"></i> Pagi
+                                    </button>
+                                </li>
+                                <li class="nav-item" role="presentation">
+                                    <button class="nav-link tab-trigger" 
+                                            id="sore-tab-{{ $student->id }}" 
+                                            data-bs-toggle="tab" 
+                                            data-bs-target="#sore-{{ $student->id }}" 
+                                            data-student-id="{{ $student->id }}"
+                                            data-type="sore"
+                                            type="button" role="tab">
+                                        <i class="bi bi-sunset-fill me-1"></i> Sore
+                                    </button>
+                                </li>
+                            </ul>
+
+                            <div class="tab-content">
+                                <div class="tab-pane fade show active" id="pagi-{{ $student->id }}" role="tabpanel">
+                                    @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
+                                </div>
+                                <div class="tab-pane fade" id="sore-{{ $student->id }}" role="tabpanel">
                                     @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_sore, 'type' => 'Sore'])
                                 </div>
                             </div>
                         </div>
+
                     </div>
-
-                    <!-- Mobile View: Tabs -->
-                    <div class="d-md-none">
-                        <ul class="nav nav-tabs nav-fill student-tabs mb-3" id="tabs-{{ $student->id }}" role="tablist">
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link active" id="pagi-tab-{{ $student->id }}" data-bs-toggle="tab" data-bs-target="#pagi-{{ $student->id }}" type="button" role="tab">
-                                    <i class="bi bi-sunrise-fill me-1"></i> Pagi
-                                </button>
-                            </li>
-                            <li class="nav-item" role="presentation">
-                                <button class="nav-link" id="sore-tab-{{ $student->id }}" data-bs-toggle="tab" data-bs-target="#sore-{{ $student->id }}" type="button" role="tab">
-                                    <i class="bi bi-sunset-fill me-1"></i> Sore
-                                </button>
-                            </li>
-                        </ul>
-
-                        <div class="tab-content">
-                            <div class="tab-pane fade show active" id="pagi-{{ $student->id }}" role="tabpanel">
-                                @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_pagi, 'type' => 'Pagi'])
-                            </div>
-                            <div class="tab-pane fade" id="sore-{{ $student->id }}" role="tabpanel">
-                                @include('parent_dashboard.partials.trip_status', ['tripData' => $student->trip_sore, 'type' => 'Sore'])
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
-        </div>
-        @empty
-        <div class="col-12">
-            <div class="empty-state">
-                <div class="empty-icon">
-                    <i class="bi bi-people"></i>
+            @empty
+            <div class="col-12">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="bi bi-people"></i>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-2">Data Anak Kosong</h5>
+                    <p class="text-muted mb-0">Anda belum terhubung dengan data siswa manapun.</p>
                 </div>
-                <h5 class="fw-bold text-dark mb-2">Data Anak Kosong</h5>
-                <p class="text-muted mb-0">Anda belum terhubung dengan data siswa manapun.</p>
             </div>
+            @endforelse
         </div>
-        @endforelse
     </div>
     
     <div style="height: 80px;"></div>
@@ -413,6 +424,10 @@
         .trip-title {
             font-size: 0.9rem;
         }
+        
+        .border-end-desktop {
+            border-right: none;
+        }
     }
 
     @media (max-width: 575.98px) {
@@ -435,4 +450,73 @@
         }
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // INTERVAL 3 DETIK (3000ms)
+        const REFRESH_INTERVAL = 3000; 
+        
+        const containerId = 'auto-refresh-container';
+        const loadingIndicator = document.getElementById('loading-indicator');
+        
+        // Simpan state tab yang aktif (untuk mobile)
+        let activeTabs = {};
+
+        // Listener: Tangkap tab yang diklik user
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('tab-trigger')) {
+                const studentId = e.target.getAttribute('data-student-id');
+                const type = e.target.getAttribute('data-type');
+                activeTabs[studentId] = type;
+            }
+        });
+
+        // Interval untuk melakukan fetch data baru
+        setInterval(() => {
+            // Tampilkan loading (opsional)
+            if(loadingIndicator) loadingIndicator.classList.remove('d-none');
+
+            fetch(window.location.href)
+                .then(response => response.text())
+                .then(html => {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newContent = doc.getElementById(containerId);
+                    const currentContainer = document.getElementById(containerId);
+
+                    if (newContent && currentContainer) {
+                        // 1. Ganti konten HTML dengan yang baru
+                        currentContainer.innerHTML = newContent.innerHTML;
+
+                        // 2. Kembalikan posisi tab yang sedang dibuka user (Persistence)
+                        Object.keys(activeTabs).forEach(studentId => {
+                            const type = activeTabs[studentId];
+                            if(type) {
+                                const tabBtn = document.getElementById(`${type}-tab-${studentId}`);
+                                const tabPane = document.getElementById(`${type}-${studentId}`);
+                                
+                                if(tabBtn && tabPane) {
+                                    // Reset active classes di container siswa tersebut
+                                    const container = tabBtn.closest('.student-body');
+                                    if(container) {
+                                        container.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+                                        container.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
+                                    }
+
+                                    // Set active kembali
+                                    tabBtn.classList.add('active');
+                                    tabPane.classList.add('show', 'active');
+                                }
+                            }
+                        });
+                    }
+                })
+                .catch(err => console.error('Auto refresh error:', err))
+                .finally(() => {
+                    // Sembunyikan loading
+                    if(loadingIndicator) loadingIndicator.classList.add('d-none');
+                });
+        }, REFRESH_INTERVAL);
+    });
+</script>
 @endsection
