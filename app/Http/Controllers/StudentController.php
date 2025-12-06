@@ -6,25 +6,20 @@ use App\Models\Student;
 use App\Models\User;
 use App\Models\Complex;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage; // <--- PENTING: Tambahkan ini untuk hapus foto
 
 class StudentController extends Controller
 {
     public function index()
     {
-        // Kita gunakan 'with' agar query database lebih hemat (Eager Loading)
-        // Mengambil data siswa beserta data orang tua dan kompleknya
-        $students = Student::with(['parent', 'complex'])->orderBy('name')->get();
+        $students = Student::with(['parent', 'complex'])->latest()->get();
         return view('students.index', compact('students'));
     }
 
     public function create()
     {
-        // Ambil daftar User yang role-nya 'parent' untuk dropdown
-        $parents = User::where('role', 'parent')->orderBy('name')->get();
-        
-        // Ambil daftar Komplek untuk dropdown
-        $complexes = Complex::orderBy('name')->get();
-
+        $parents = User::where('role', 'parent')->get();
+        $complexes = Complex::all();
         return view('students.create', compact('parents', 'complexes'));
     }
 
@@ -32,21 +27,30 @@ class StudentController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'parent_id' => 'required|exists:users,id', // Harus user yang valid
-            'complex_id' => 'required|exists:complexes,id', // Harus komplek yang valid
-            'address_note' => 'nullable|string', // Blok/No Rumah
+            'parent_id' => 'required',
+            'complex_id' => 'required',
+            'address_note' => 'nullable|string',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', // Validasi Foto
         ]);
 
-        Student::create($request->all());
+        $data = $request->all();
 
-        return redirect()->route('students.index')->with('success', 'Data Siswa berhasil ditambahkan.');
+        // 1. LOGIKA UPLOAD FOTO
+        if ($request->hasFile('photo')) {
+            // Simpan ke folder 'storage/app/public/student-photos'
+            $path = $request->file('photo')->store('student-photos', 'public');
+            $data['photo'] = $path;
+        }
+
+        Student::create($data);
+
+        return redirect()->route('students.index')->with('success', 'Data siswa berhasil ditambahkan.');
     }
 
     public function edit(Student $student)
     {
-        $parents = User::where('role', 'parent')->orderBy('name')->get();
-        $complexes = Complex::orderBy('name')->get();
-
+        $parents = User::where('role', 'parent')->get();
+        $complexes = Complex::all();
         return view('students.edit', compact('student', 'parents', 'complexes'));
     }
 
@@ -54,19 +58,38 @@ class StudentController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'parent_id' => 'required|exists:users,id',
-            'complex_id' => 'required|exists:complexes,id',
+            'parent_id' => 'required',
+            'complex_id' => 'required',
             'address_note' => 'nullable|string',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        $student->update($request->all());
+        $data = $request->all();
 
-        return redirect()->route('students.index')->with('success', 'Data Siswa berhasil diperbarui.');
+        // 2. LOGIKA UPDATE FOTO
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama jika ada
+            if ($student->photo) {
+                Storage::disk('public')->delete($student->photo);
+            }
+            // Simpan foto baru
+            $path = $request->file('photo')->store('student-photos', 'public');
+            $data['photo'] = $path;
+        }
+
+        $student->update($data);
+
+        return redirect()->route('students.index')->with('success', 'Data siswa diperbarui.');
     }
 
     public function destroy(Student $student)
     {
+        // Hapus foto saat data siswa dihapus
+        if ($student->photo) {
+            Storage::disk('public')->delete($student->photo);
+        }
+        
         $student->delete();
-        return redirect()->route('students.index')->with('success', 'Data Siswa berhasil dihapus.');
+        return redirect()->route('students.index')->with('success', 'Data siswa dihapus.');
     }
 }
