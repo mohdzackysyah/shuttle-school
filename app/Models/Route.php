@@ -17,9 +17,15 @@ class Route extends Model
         return $this->hasMany(Complex::class);
     }
 
-    // Relasi ke Trip (Jadwal) tetap sama
+    // Relasi ke Trip (History Perjalanan)
     public function trips()
     {
         return $this->hasMany(Trip::class);
+    }
+
+    // [BARU] Relasi ke Jadwal (Untuk menghitung armada)
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
     }
 }

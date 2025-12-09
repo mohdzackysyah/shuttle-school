@@ -61,8 +61,7 @@ Route::middleware(['auth'])->group(function () {
     // 1. Trip Resource (Agar driver bisa akses 'store' utk mulai trip)
     Route::resource('trips', TripController::class); 
     
-    // 2. [PENTING] API Get Siswa by Rute (Dipindahkan kesini agar URL-nya bersih)
-    // URL: domain.com/get-students-by-route/{id}
+    // 2. API Get Siswa by Rute (Untuk Select Box di Jadwal)
     Route::get('/get-students-by-route/{route_id}', [ScheduleController::class, 'getStudentsByRoute'])->name('api.get_students');
 
 
@@ -81,14 +80,18 @@ Route::middleware(['auth'])->group(function () {
         // Manajemen User
         Route::resource('drivers', DriverController::class);
         Route::resource('parents', ParentController::class);
+        
+        // CRUD Students & PENCARIAN SISWA (Baru)
         Route::resource('students', StudentController::class);
+        Route::get('/search-student', [StudentController::class, 'search'])->name('students.search');
+        Route::post('/find-student', [StudentController::class, 'find'])->name('students.find');
         
         // --- MANAJEMEN JADWAL ---
         Route::resource('schedules', ScheduleController::class);
         
         // Fitur Bulk Edit (Edit Rangkaian)
-        Route::get('/schedules/bulk-edit/{route_id}', [ScheduleController::class, 'editBulk'])->name('schedules.editBulk');
-        Route::put('/schedules/bulk-update/{route_id}', [ScheduleController::class, 'updateBulk'])->name('schedules.updateBulk');
+        Route::get('/schedules/bulk-edit/{id}', [ScheduleController::class, 'editBulk'])->name('schedules.editBulk');
+        Route::put('/schedules/bulk-update/{id}', [ScheduleController::class, 'updateBulk'])->name('schedules.updateBulk');
 
         // AJAX Helpers (Cek Bentrok & Komplek)
         Route::post('/check-availability', [ScheduleController::class, 'checkAvailability'])->name('schedules.check');
@@ -123,16 +126,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/dashboard', [ParentDashboardController::class, 'index'])->name('parents.dashboard');
         Route::get('/my-children', [ParentDashboardController::class, 'myChildren'])->name('parents.my_children');
         
-        // [BARU] Edit Data Anak
+        // Edit Data Anak (Foto & Alamat)
         Route::get('/my-children/{id}/edit', [ParentDashboardController::class, 'editChild'])->name('parents.children.edit');
         Route::put('/my-children/{id}', [ParentDashboardController::class, 'updateChild'])->name('parents.children.update');
 
         Route::get('/trip-detail/{passenger_id}', [ParentDashboardController::class, 'showTripDetail'])->name('parents.trip.detail');
         
-        // [BARU] Menu Riwayat / Laporan
+        // Menu Riwayat / Laporan
         Route::get('/history', [ParentDashboardController::class, 'history'])->name('parents.history');
 
-        // [BARU] Ajax Auto-Refresh
+        // Ajax Auto-Refresh
         Route::get('/get-status/{student_id}', [ParentDashboardController::class, 'ajaxStatus'])->name('parents.ajax_status');
         
         // Aksi Ortu

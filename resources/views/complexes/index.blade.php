@@ -1,73 +1,111 @@
 @extends('layouts.admin')
 
 @section('content')
-<div class="d-flex justify-content-between align-items-end mb-4">
-    <div>
-        <h3 class="fw-bold text-dark">🏙️ Data Perumahan / Komplek</h3>
-        <p class="text-muted mb-0">Lokasi tempat tinggal siswa yang terdaftar.</p>
-    </div>
-    <a href="{{ route('complexes.create') }}" class="btn btn-primary shadow-sm">
-        <i class="bi bi-plus-lg"></i> Tambah Komplek
-    </a>
-</div>
+<div class="container-fluid px-0">
 
-<div class="card border-0 shadow-sm rounded-4 overflow-hidden">
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-hover mb-0 align-middle">
-                <thead class="table-light">
-                    <tr>
-                        <th width="50" class="text-center py-3">No</th>
-                        <th>Nama Komplek</th>
-                        <th>Rute Wilayah</th> <th width="200" class="text-end pe-4">Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse($complexes as $index => $complex)
-                    <tr>
-                        <td class="text-center text-muted">{{ $index + 1 }}</td>
-                        <td class="fw-bold text-dark">
-                            <i class="bi bi-building text-secondary me-2"></i> {{ $complex->name }}
-                        </td>
-                        <td>
-                            @if($complex->route)
-                                <span class="badge bg-info text-dark bg-opacity-10 border border-info px-3 py-2 rounded-pill">
-                                    <i class="bi bi-map-fill me-1"></i> {{ $complex->route->name }}
-                                </span>
-                            @else
-                                <span class="badge bg-secondary bg-opacity-10 text-secondary px-3 py-2 rounded-pill">
-                                    Belum ada rute
-                                </span>
-                            @endif
-                        </td>
-                        <td class="text-end pe-4">
-                            <a href="{{ route('complexes.edit', $complex->id) }}" class="btn btn-sm btn-outline-warning me-1">
-                                <i class="bi bi-pencil-square"></i> Edit
-                            </a>
-                            
-                            <form action="{{ route('complexes.destroy', $complex->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Yakin ingin menghapus komplek ini? Data siswa di dalamnya mungkin akan terdampak.')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </form>
-                        </td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="4" class="text-center py-5 text-muted">
-                            <div class="mb-3 opacity-25">
-                                <i class="bi bi-buildings display-4"></i>
-                            </div>
-                            <h6 class="fw-bold">Belum ada data komplek.</h6>
-                            <p class="small">Silakan tambahkan data baru.</p>
-                        </td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+    {{-- 1. HEADER HALAMAN --}}
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
+        <div class="mb-3 mb-md-0">
+            <h3 class="fw-bold text-dark mb-1">
+                <i class="bi bi-buildings-fill text-primary me-2"></i>Data Perumahan
+            </h3>
+            <p class="text-muted mb-0">Manajemen lokasi tempat tinggal siswa yang terdaftar.</p>
+        </div>
+        <a href="{{ route('complexes.create') }}" class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold">
+            <i class="bi bi-plus-lg me-2"></i> Tambah Komplek
+        </a>
+    </div>
+
+    {{-- 2. TABEL CARD --}}
+    <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+        <div class="card-body p-0">
+            
+            {{-- Wrapper Responsive --}}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-nowrap">
+                    <thead class="bg-light">
+                        <tr>
+                            <th class="ps-4 py-3 text-secondary text-uppercase small fw-bold">Nama Komplek</th>
+                            <th class="py-3 text-secondary text-uppercase small fw-bold">Rute Wilayah</th>
+                            <th class="py-3 text-secondary text-uppercase small fw-bold text-end pe-4">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse($complexes as $complex)
+                        <tr>
+                            <td class="ps-4 py-3">
+                                <div class="d-flex align-items-center">
+                                    {{-- Icon Bangunan sebagai Avatar --}}
+                                    <div class="bg-primary bg-opacity-10 text-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                                        <i class="bi bi-building"></i>
+                                    </div>
+                                    <div>
+                                        <div class="fw-bold text-dark">{{ $complex->name }}</div>
+                                        <small class="text-muted">ID: #{{ $complex->id }}</small>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @if($complex->route)
+                                    <span class="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25 px-3 py-2 rounded-pill fw-normal">
+                                        <i class="bi bi-map-fill me-1"></i> {{ $complex->route->name }}
+                                    </span>
+                                @else
+                                    <span class="text-muted fst-italic small">
+                                        <i class="bi bi-exclamation-circle me-1"></i> Belum ada rute
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="text-end pe-4">
+                                <div class="btn-group">
+                                    <a href="{{ route('complexes.edit', $complex->id) }}" class="btn btn-sm btn-light text-primary border shadow-sm rounded-start" title="Edit Data">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    
+                                    <form action="{{ route('complexes.destroy', $complex->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Hapus komplek {{ $complex->name }}? Perhatian: Data siswa di komplek ini mungkin akan terdampak.')">
+                                        @csrf @method('DELETE')
+                                        <button class="btn btn-sm btn-light text-danger border shadow-sm rounded-end border-start-0" title="Hapus Komplek">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="3" class="text-center py-5">
+                                <div class="d-flex flex-column align-items-center justify-content-center opacity-50">
+                                    <div class="bg-light rounded-circle p-3 mb-3">
+                                        <i class="bi bi-buildings display-4 text-secondary"></i>
+                                    </div>
+                                    <h5 class="fw-bold text-secondary">Data Kosong</h5>
+                                    <p class="text-muted small mb-0">Belum ada data komplek perumahan.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+
+            {{-- Pagination (Otomatis muncul jika data > limit per halaman) --}}
+            @if(method_exists($complexes, 'hasPages') && $complexes->hasPages())
+                <div class="card-footer bg-white py-3 border-top">
+                    {{ $complexes->links() }}
+                </div>
+            @endif
+
         </div>
     </div>
 </div>
+
+<style>
+    /* Styling agar baris tabel nyaman dibaca */
+    .table > :not(caption) > * > * {
+        padding: 1rem 0.5rem;
+    }
+    .table-hover tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
 @endsection
