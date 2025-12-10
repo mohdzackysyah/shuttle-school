@@ -4,21 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Monitoring Anak - Shuttle Sekolah</title>
-    
+    <link rel="icon" type="image/png" href="{{ asset('images/favicon.png') }}">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 
     <style>
         :root {
-            --primary: #2563eb;
-            --primary-dark: #1e40af;
-            --secondary: #fbbf24;
-            --dark: #1e293b;
-            --light: #f8fafc;
-            --gray: #64748b;
-            --success: #10b981;
-            --danger: #ef4444;
+            /* PERUBAHAN WARNA: Konsisten Biru */
+            --primary: #2563eb;       /* Royal Blue */
+            --primary-dark: #1e40af;  /* Dark Blue */
+            --secondary: #0dcaf0;     /* Cyan/Light Blue (Pengganti Amber/Kuning) */
+            --dark: #1e293b;          /* Slate 800 */
+            --light: #f8fafc;         /* Slate 50 */
+            --gray: #64748b;          /* Slate 500 */
+            --success: #10b981;       /* Emerald */
+            --danger: #ef4444;        /* Red */
         }
 
         * {
@@ -29,6 +30,7 @@
 
         body { 
             font-family: 'Poppins', sans-serif; 
+            /* Background Gradient Biru Lembut */
             background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
             min-height: 100vh;
             padding-top: 85px;
@@ -47,7 +49,7 @@
             backdrop-filter: blur(10px);
             border-bottom: 1px solid rgba(0, 0, 0, 0.05);
             box-shadow: 0 2px 10px rgba(0,0,0,0.03);
-            padding: 0.8rem 0; /* Padding disesuaikan */
+            padding: 0.8rem 0; 
             transition: all 0.3s ease;
         }
 
@@ -63,7 +65,7 @@
             gap: 10px;
             font-size: 1.6rem;
             transition: transform 0.2s;
-            padding: 0; /* Reset padding agar logo pas */
+            padding: 0; 
         }
 
         /* LOGO STYLING (RESPONSIVE) */
@@ -83,7 +85,7 @@
             width: 38px; 
             height: 38px; 
             background-color: var(--secondary);
-            color: var(--dark); 
+            color: var(--dark); /* Text tetap gelap agar kontras dengan Cyan */
             border-radius: 50%;
             display: flex; 
             align-items: center; 
@@ -92,7 +94,8 @@
             font-size: 0.9rem;
             object-fit: cover;
             transition: transform 0.2s;
-            box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+            /* Update Shadow ke warna Cyan/Biru */
+            box-shadow: 0 4px 12px rgba(13, 202, 240, 0.3);
         }
 
         .user-avatar:hover {
@@ -208,10 +211,9 @@
             }
 
             .navbar {
-                padding: 8px 0; /* Padding lebih tipis di HP */
+                padding: 8px 0;
             }
 
-            /* Ukuran Logo Mobile */
             .navbar-brand img {
                 height: 40px; 
             }
@@ -351,7 +353,8 @@
         }
 
         ::-webkit-scrollbar-thumb:hover {
-            background: linear-gradient(135deg, var(--primary-dark), #f59e0b);
+            /* Update Hover Scrollbar jadi Nuansa Biru */
+            background: linear-gradient(135deg, var(--primary-dark), #0ea5e9);
         }
     </style>
 </head>
@@ -361,7 +364,6 @@
         <div class="container">
             
             <a class="navbar-brand d-flex align-items-center" href="{{ route('parents.dashboard') }}">
-                {{-- PERUBAHAN LOGO: Menggunakan Gambar --}}
                 <img src="{{ asset('images/logo.png') }}" alt="ShuttleApp">
             </a>
 
@@ -383,12 +385,12 @@
                             <i class="bi bi-people-fill"></i> Data Anak
                         </a>
                     </li>
-<li class="nav-item">
-    <a class="nav-link {{ request()->routeIs('parents.history') ? 'active' : '' }}" href="{{ route('parents.history') }}">
-        <i class="bi bi-clock-history"></i> Riwayat
-    </a>
-</li>
-                    <!-- Mobile Only Menu Items -->
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('parents.history') ? 'active' : '' }}" href="{{ route('parents.history') }}">
+                            <i class="bi bi-clock-history"></i> Riwayat
+                        </a>
+                    </li>
+
                     <li class="nav-item d-lg-none">
                         <a class="nav-link {{ request()->routeIs('profile.index') ? 'active' : '' }}" href="{{ route('profile.index') }}">
                             <i class="bi bi-person-circle"></i> Profil Saya
@@ -403,7 +405,6 @@
                         </form>
                     </li>
 
-                    <!-- Desktop User Dropdown -->
                     <li class="nav-item dropdown d-none d-lg-block ms-3">
                         <a class="nav-link dropdown-toggle p-0 d-flex align-items-center gap-2" href="#" data-bs-toggle="dropdown">
                             <div class="user-info text-end">

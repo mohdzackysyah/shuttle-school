@@ -28,6 +28,14 @@ class TripPassengerController extends Controller
             return redirect()->route('driver.dashboard')->with('error', 'Akses ditolak.');
         }
 
+        // --- PERBAIKAN DISINI ---
+        // Jika status sudah 'finished', jangan biarkan masuk ke halaman ini lagi.
+        // Langsung lempar ke dashboard.
+        if ($trip->status == 'finished') {
+            return redirect()->route('driver.dashboard')->with('success', 'Perjalanan ini sudah selesai.');
+        }
+        // -------------------------
+
         // Auto-start trip jika masih 'scheduled'
         if ($trip->status == 'scheduled') {
             $trip->update(['status' => 'active']);
