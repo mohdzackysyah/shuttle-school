@@ -20,6 +20,32 @@ use App\Http\Controllers\DriverDashboardController;
 use App\Http\Controllers\TripPassengerController;
 use App\Http\Controllers\ParentDashboardController;
 
+use Illuminate\Support\Facades\Artisan;
+
+Route::get('/setup-hosting-khusus', function() {
+    try {
+        Artisan::call('storage:link');
+        $link = 'Storage Link: Berhasil. ';
+    } catch (\Exception $e) {
+        $link = 'Storage Link: Gagal/Sudah ada. ';
+    }
+
+    try {
+        Artisan::call('migrate', ['--force' => true]);
+        $migrate = 'Migration: Berhasil. ';
+    } catch (\Exception $e) {
+        $migrate = 'Migration: Gagal (' . $e->getMessage() . '). ';
+    }
+
+    try {
+        Artisan::call('optimize:clear');
+        $cache = 'Cache Clear: Berhasil.';
+    } catch (\Exception $e) {
+        $cache = 'Cache Clear: Gagal.';
+    }
+
+    return $link . $migrate . $cache;
+});
 // ====================================================
 // 1. ROUTE PUBLIK (TIDAK PERLU LOGIN)
 // ====================================================
