@@ -19,27 +19,26 @@ return new class extends Migration
             $table->enum('type', ['pickup', 'dropoff']); // pickup=jemput pagi, dropoff=antar pulang
             
             // Status Perjalanan Driver
-            // scheduled = belum mulai
-            // active = sedang jalan
-            // finished = sampai sekolah/selesai
             $table->enum('status', ['scheduled', 'active', 'finished'])->default('scheduled');
             
             $table->timestamps();
         });
 
         // 2. Tabel Detail Penumpang (Manifest)
-        // Ini mencatat status per anak di setiap perjalanan
         Schema::create('trip_passengers', function (Blueprint $table) {
             $table->id();
             $table->foreignId('trip_id')->constrained('trips')->onDelete('cascade');
             $table->foreignId('student_id')->constrained('students');
             
-            // Status Siswa
-            // pending = menunggu dijemput/belum naik
-            // picked_up = sudah masuk mobil
-            // dropped_off = sudah sampai tujuan (sekolah/rumah)
-            // absent = izin/sakit (skip)
-            $table->enum('status', ['pending', 'picked_up', 'dropped_off', 'absent'])->default('pending');
+            // PERBAIKAN DISINI: Menambahkan 'waiting' dan 'skipped'
+            $table->enum('status', [
+                'pending',      // Menunggu/Belum diapa-apain
+                'waiting',      // [BARU] Driver sudah sampai depan rumah
+                'picked_up',    // Siswa naik mobil
+                'dropped_off',  // Siswa turun (sampai tujuan)
+                'skipped',      // [BARU] Dilewati oleh driver (tombol Skip)
+                'absent'        // Izin/Sakit (dari Ortu)
+            ])->default('pending');
             
             $table->time('picked_at')->nullable(); // Jam masuk mobil
             $table->time('dropped_at')->nullable(); // Jam turun mobil

@@ -107,29 +107,7 @@ class ScheduleController extends Controller
     // --- BULK EDIT (LOGIKA CERDAS) ---
     public function editBulk($routeId)
     {
-        // Kita perlu mengambil salah satu jadwal dari grup ini sebagai referensi
-        // Tapi karena route_id bisa sama untuk driver yang berbeda,
-        // Logic editBulk yang ideal harusnya menerima ID UNIK grup atau ID salah satu jadwal.
-        // Namun untuk simplifikasi sesuai request, kita ambil berdasarkan route_id dulu, 
-        // TAPI kita perlu handle jika ada multiple driver di satu rute.
-        
-        // REVISI: Ambil schedules berdasarkan route_id SAJA mungkin kurang spesifik jika ada 2 driver di rute sama.
-        // TAPI untuk fitur "Edit Rangkaian" dari tombol index, biasanya tombol itu menempel pada satu grup spesifik.
-        // Jadi kita asumsikan User ingin mengedit SATU GRUP JADWAL (Route X, Driver Y, Mobil Z).
-        
-        // Agar aman, kita ambil jadwal berdasarkan Route ID, tapi kita filter lagi nanti di view atau logic update.
-        // ATAU LEBIH BAIK: Parameter URL sebaiknya ID salah satu jadwal, lalu kita cari temannya.
-        
-        // Mari kita gunakan logika: Ambil semua jadwal dengan Route ID ini.
-        // Jika ada banyak driver, ini bisa jadi isu.
-        // SOLUSI TERBAIK: Parameter URL adalah `first_schedule_id` dari grup tersebut.
-        
-        // Karena di routes/web.php parameternya {route_id}, kita ikuti dulu.
-        // Tapi sebaiknya kita ubah sedikit cara panggilnya di index.blade.php agar mengirim ID salah satu jadwal.
-        
         // Asumsi: Parameter $routeId disini sebenarnya adalah ID salah satu jadwal (schedule_id) 
-        // agar kita bisa melacak Driver & Mobilnya.
-        // Mari kita ubah parameternya jadi $scheduleId di logic ini agar aman.
         
         $referenceSchedule = Schedule::find($routeId); // Anggap $routeId ini adalah ID Jadwal
         
@@ -214,16 +192,6 @@ class ScheduleController extends Controller
 
         if(!$inputData) return back()->with('error', 'Pilih minimal satu hari!');
 
-        // Hapus jadwal lama dalam grup ini
-        // Kita hapus berdasarkan kriteria grup lama (Route + Driver + Shuttle)
-        // Agar tergantikan dengan yang baru (bersih)
-        // Schedule::where('route_id', $currentRouteId)
-        //         ->where('driver_id', $currentDriverId)
-        //         ->where('shuttle_id', $currentShuttleId)
-        //         ->delete(); 
-        // -- TAPI HATI-HATI, DELETE ALL BISA BERBAHAYA KALAU GAGAL INSERT BARU.
-        // -- LEBIH AMAN PAKAI UPDATEORCREATE PER HARI.
-
         foreach ($inputData as $dayName => $data) {
             
             // Cari jadwal spesifik di hari ini milik grup ini
@@ -272,6 +240,28 @@ class ScheduleController extends Controller
         }
 
         return redirect()->route('schedules.index')->with('success', 'Rangkaian jadwal diperbarui.');
+    }
+
+    // --- [BARU] HAPUS RANGKAIAN (BULK DELETE) ---
+    public function destroyBulk($id)
+    {
+        // 1. Ambil satu jadwal sebagai referensi
+        $referenceSchedule = Schedule::findOrFail($id);
+        
+        // 2. Cari semua jadwal yang memiliki Rute, Driver, dan Mobil yang SAMA
+        // (Ini mendefinisikan "Rangkaian" jadwal tersebut)
+        $schedules = Schedule::where('route_id', $referenceSchedule->route_id)
+                    ->where('driver_id', $referenceSchedule->driver_id)
+                    ->where('shuttle_id', $referenceSchedule->shuttle_id)
+                    ->get();
+
+        // 3. Loop dan hapus (termasuk detach siswa)
+        foreach($schedules as $schedule) {
+            $schedule->students()->detach(); // Hapus relasi siswa di pivot
+            $schedule->delete(); // Hapus jadwal
+        }
+
+        return back()->with('success', 'Seluruh rangkaian jadwal berhasil dihapus.');
     }
 
     // --- SINGLE EDIT ---

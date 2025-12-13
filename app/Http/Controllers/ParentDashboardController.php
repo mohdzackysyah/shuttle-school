@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; // Tambahkan Storage
+use Illuminate\Support\Facades\Storage; // Pastikan ini ada
 use App\Models\Student;
 use App\Models\TripPassenger;
 use App\Models\Trip;
@@ -12,7 +12,9 @@ use Carbon\Carbon;
 
 class ParentDashboardController extends Controller
 {
-    // ... (method index, ajaxStatus, dll biarkan seperti sebelumnya) ...
+    // ====================================================
+    // DASHBOARD & UTAMA
+    // ====================================================
     public function index()
     {
         $parent = Auth::user();
@@ -22,6 +24,7 @@ class ParentDashboardController extends Controller
         $today = Carbon::today();
 
         foreach ($students as $student) {
+            // Ambil Trip Pagi (Pickup)
             $student->trip_pagi = TripPassenger::where('student_id', $student->id)
                 ->whereHas('trip', function($q) use ($today) {
                     $q->where('type', 'pickup')
@@ -32,6 +35,7 @@ class ParentDashboardController extends Controller
                 ->latest()
                 ->first();
 
+            // Ambil Trip Sore (Dropoff)
             $student->trip_sore = TripPassenger::where('student_id', $student->id)
                 ->whereHas('trip', function($q) use ($today) {
                     $q->where('type', 'dropoff')
@@ -49,6 +53,7 @@ class ParentDashboardController extends Controller
     public function ajaxStatus($studentId)
     {
         $parent = Auth::user();
+        // Validasi kepemilikan siswa
         $student = Student::where('id', $studentId)->where('parent_id', $parent->id)->firstOrFail();
         $today = Carbon::today();
 
@@ -74,7 +79,6 @@ class ParentDashboardController extends Controller
         ]);
     }
     
-    // --- METHOD LAMA ---
     public function myChildren()
     {
         $parent = Auth::user();
@@ -82,12 +86,25 @@ class ParentDashboardController extends Controller
         return view('parent_dashboard.children', compact('students'));
     }
 
+    // ====================================================
+    // PERBAIKAN DI SINI (SOLUSI AKSES DITOLAK)
+    // ====================================================
     public function showTripDetail($passengerId)
     {
         $passenger = TripPassenger::with(['trip.driver', 'trip.shuttle', 'trip.route', 'student'])->findOrFail($passengerId);
-        if ($passenger->student->parent_id !== Auth::id()) return redirect()->route('parents.dashboard')->with('error', 'Akses ditolak.');
+        
+        // FIX: Gunakan intval() untuk memaksa kedua ID menjadi angka (Integer).
+        // Gunakan operator != agar tidak sensitif tipe data (misal "5" vs 5).
+        if (intval($passenger->student->parent_id) != intval(Auth::id())) {
+            return redirect()->route('parents.dashboard')->with('error', 'Akses ditolak.');
+        }
+
         return view('parent_dashboard.trip_detail', compact('passenger'));
     }
+
+    // ====================================================
+    // FITUR LAINNYA
+    // ====================================================
 
     public function setAbsent(Request $request, $studentId)
     {
@@ -110,6 +127,7 @@ class ParentDashboardController extends Controller
     {
         $parent = Auth::user();
         $childIds = Student::where('parent_id', $parent->id)->pluck('id');
+        
         $query = TripPassenger::whereIn('student_id', $childIds)
             ->with(['trip.route', 'trip.driver', 'student'])
             ->whereHas('trip', function($q) { $q->where('status', 'finished'); });
@@ -125,13 +143,15 @@ class ParentDashboardController extends Controller
                 $q->whereMonth('date', Carbon::now()->month)->whereYear('date', Carbon::now()->year);
             });
         }
+        
         $histories = $query->join('trips', 'trip_passengers.trip_id', '=', 'trips.id')
                            ->select('trip_passengers.*')->orderBy('trips.date', 'desc')
                            ->paginate(10)->withQueryString();
+                           
         return view('parent_dashboard.history', compact('histories'));
     }
 
-    // --- [BARU] FITUR EDIT ANAK OLEH ORANG TUA ---
+    // --- FITUR EDIT ANAK OLEH ORANG TUA ---
 
     // 1. Tampilkan Form Edit
     public function editChild($id)

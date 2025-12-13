@@ -12,31 +12,24 @@ class TripPassengerController extends Controller
 {
     /**
      * 1. Halaman Proses Perjalanan
-     * Memuat data siswa, orang tua (HP), dan komplek (Alamat).
      */
     public function process($tripId)
     {
         $trip = Trip::with([
-            'passengers.student.parent',   // PENTING: Untuk ambil No HP (phone)
-            'passengers.student.complex',  // PENTING: Untuk ambil Nama Komplek
+            'passengers.student.parent',
+            'passengers.student.complex',
             'route', 
             'shuttle'
         ])->findOrFail($tripId);
 
-        // Validasi Pemilik Trip
         if (Auth::user()->id != $trip->driver_id) {
             return redirect()->route('driver.dashboard')->with('error', 'Akses ditolak.');
         }
 
-        // --- PERBAIKAN DISINI ---
-        // Jika status sudah 'finished', jangan biarkan masuk ke halaman ini lagi.
-        // Langsung lempar ke dashboard.
         if ($trip->status == 'finished') {
             return redirect()->route('driver.dashboard')->with('success', 'Perjalanan ini sudah selesai.');
         }
-        // -------------------------
 
-        // Auto-start trip jika masih 'scheduled'
         if ($trip->status == 'scheduled') {
             $trip->update(['status' => 'active']);
         }
@@ -48,8 +41,24 @@ class TripPassengerController extends Controller
     }
 
     /**
+     * [BARU] LOGIKA WAITING (Driver Sampai / Menunggu)
+     */
+    public function waiting($id)
+    {
+        $passenger = TripPassenger::findOrFail($id);
+
+        // Hanya ubah jika status sebelumnya masih 'pending'
+        if ($passenger->status == 'pending') {
+            $passenger->update([
+                'status' => 'waiting'
+            ]);
+        }
+
+        return back()->with('success', 'Status diupdate: Menunggu di depan rumah.');
+    }
+
+    /**
      * 2. LOGIKA JEMPUT (NAIK KE MOBIL)
-     * Berlaku untuk Pagi (di rumah) dan Sore (di sekolah).
      */
     public function pickup($id)
     {
@@ -60,7 +69,6 @@ class TripPassengerController extends Controller
             'picked_at' => Carbon::now()
         ]);
         
-        // Pastikan status Trip induk menjadi 'active' jika siswa pertama naik
         if ($passenger->trip && $passenger->trip->status == 'scheduled') {
             $passenger->trip->update(['status' => 'active']);
         }
@@ -70,7 +78,6 @@ class TripPassengerController extends Controller
 
     /**
      * 3. LOGIKA SKIP (LEWATI)
-     * Jika siswa tidak masuk atau izin.
      */
     public function skip($id)
     {
@@ -84,8 +91,7 @@ class TripPassengerController extends Controller
     }
 
     /**
-     * 4. LOGIKA TURUN (SAMPAI RUMAH) - BARU!
-     * Khusus digunakan saat tombol Hijau "TURUN" diklik pada pengantaran sore.
+     * 4. LOGIKA TURUN (SAMPAI RUMAH)
      */
     public function dropoff($id)
     {
@@ -101,15 +107,11 @@ class TripPassengerController extends Controller
 
     /**
      * 5. SELESAI SESI (FINISH)
-     * Mengakhiri seluruh perjalanan.
      */
     public function finishTrip($tripId)
     {
         $trip = Trip::findOrFail($tripId);
         
-        // --- LOGIKA KHUSUS JEMPUT PAGI ---
-        // Jika pagi, driver hanya klik "Naik" satu per satu.
-        // Saat sampai sekolah (Finish), semua siswa di dalam mobil otomatis dianggap "Turun".
         if ($trip->type == 'pickup') { 
             $trip->passengers()->where('status', 'picked_up')->update([
                 'status' => 'dropped_off',
@@ -117,14 +119,8 @@ class TripPassengerController extends Controller
             ]);
         }
 
-        // --- LOGIKA ANTAR SORE ---
-        // Untuk sore, driver seharusnya sudah mengklik tombol "TURUN" satu per satu di method dropoff().
-        // Method ini hanya menutup status Trip utamanya saja.
-
-        // Update status Trip jadi selesai
         $trip->update([
             'status' => 'finished'
-            // 'finished_at' => Carbon::now() // Uncomment jika punya kolom ini
         ]);
         
         return redirect()->route('driver.dashboard')

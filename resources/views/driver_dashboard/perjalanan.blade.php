@@ -39,7 +39,8 @@
     /* Indikator Status */
     .status-stripe { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; }
     .stripe-pending { background: #cbd5e1; }
-    .stripe-active { background: #f59e0b; }
+    .stripe-waiting { background: #eab308; } /* Kuning Gelap */
+    .stripe-active { background: #f59e0b; } /* Orange */
     .stripe-done { background: #10b981; }
     .stripe-skip { background: #ef4444; }
 
@@ -47,6 +48,7 @@
     .bg-done { background-color: #f0fdf4; border-color: #bbf7d0; }
     .bg-skip { background-color: #fef2f2; border-color: #fecaca; opacity: 0.8; }
     .bg-active { background-color: #fffbeb; border-color: #fde68a; }
+    .bg-waiting { background-color: #fffde7; border-color: #fef08a; }
 
     /* Avatar */
     .avatar-circle {
@@ -70,6 +72,9 @@
     .btn-pickup { background: #f59e0b; color: white; box-shadow: 0 4px 10px rgba(245, 158, 11, 0.2); }
     .btn-pickup:active { background: #d97706; transform: translateY(2px); }
 
+    .btn-waiting { background: #eab308; color: white; box-shadow: 0 4px 10px rgba(234, 179, 8, 0.2); }
+    .btn-waiting:active { background: #ca8a04; transform: translateY(2px); }
+
     .btn-dropoff { background: #10b981; color: white; box-shadow: 0 4px 10px rgba(16, 185, 129, 0.2); }
     .btn-dropoff:active { background: #059669; transform: translateY(2px); }
 
@@ -88,12 +93,11 @@
     .btn-finish-header:active { transform: scale(0.95); }
 </style>
 
-{{-- Kalkulasi Progress (Menggunakan variabel $passengers dari Controller) --}}
+{{-- Kalkulasi Progress --}}
 @php
     $total = $passengers->count();
-    // Hitung status != pending
     $done = $passengers->filter(function($p) {
-        return $p->status != 'pending';
+        return $p->status != 'pending' && $p->status != 'waiting';
     })->count();
     
     $percent = $total > 0 ? ($done/$total)*100 : 0;
@@ -155,7 +159,10 @@
                 $stripeClass = 'stripe-pending';
                 $cardBg = 'bg-white';
                 
-                if($p->status == 'picked_up') {
+                if($p->status == 'waiting') {
+                    $stripeClass = 'stripe-waiting'; $cardBg = 'bg-waiting';
+                }
+                elseif($p->status == 'picked_up') {
                     $stripeClass = 'stripe-active';
                     // Jika sore (dropoff), yang statusnya picked_up kita highlight kuning (ready to drop)
                     if($trip->type != 'pickup') $cardBg = 'bg-active'; 
@@ -188,8 +195,10 @@
                             <h6 class="fw-bold text-dark mb-0 text-truncate">{{ $p->student->name }}</h6>
                             
                             {{-- Badge Status --}}
-                            @if($p->status == 'picked_up')
-                                <span class="badge bg-warning text-dark rounded-pill" style="font-size:0.6rem;">NAIK</span>
+                            @if($p->status == 'waiting')
+                                <span class="badge bg-warning text-dark rounded-pill" style="font-size:0.6rem;">MENUNGGU</span>
+                            @elseif($p->status == 'picked_up')
+                                <span class="badge bg-primary rounded-pill" style="font-size:0.6rem;">NAIK</span>
                             @elseif($p->status == 'dropped_off')
                                 <span class="badge bg-success rounded-pill" style="font-size:0.6rem;">SAMPAI</span>
                             @elseif($p->status == 'skipped')
@@ -207,14 +216,46 @@
 
                 {{-- TOMBOL AKSI --}}
                 <div class="ps-2">
-                    {{-- 1. Belum Dijemput --}}
+                    
+                    {{-- KONDISI 1: Status Masih Pending (Belum Dijemput) --}}
                     @if($p->status == 'pending')
                         <div class="row g-2">
+                            <div class="col-8">
+                                {{-- LOGIKA BEDA: PAGI vs SORE --}}
+                                @if($trip->type == 'pickup')
+                                    {{-- PAGI: Ada fitur Waiting (Sampai Titik) --}}
+                                    <form action="{{ route('driver.passenger.waiting', $p->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn-action btn-waiting">
+                                            <i class="bi bi-geo-alt-fill fs-5"></i> SAMPAI TITIK
+                                        </button>
+                                    </form>
+                                @else
+                                    {{-- SORE: Langsung Naik (Logika Lama) --}}
+                                    <form action="{{ route('driver.passenger.pickup', $p->id) }}" method="POST">
+                                        @csrf
+                                        <button type="submit" class="btn-action btn-pickup">
+                                            <i class="bi bi-box-arrow-in-right fs-5"></i> SISWA NAIK
+                                        </button>
+                                    </form>
+                                @endif
+                            </div>
+                            <div class="col-4">
+                                <form action="{{ route('driver.passenger.skip', $p->id) }}" method="POST" onsubmit="return confirm('Lewati siswa ini?');">
+                                    @csrf
+                                    <button type="submit" class="btn-action btn-skip">SKIP</button>
+                                </form>
+                            </div>
+                        </div>
+
+                    {{-- KONDISI 2: Status Waiting (Khusus Pagi yang sudah diklik Sampai) --}}
+                    @elseif($p->status == 'waiting')
+                         <div class="row g-2">
                             <div class="col-8">
                                 <form action="{{ route('driver.passenger.pickup', $p->id) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn-action btn-pickup">
-                                        <i class="bi bi-box-arrow-in-right fs-5"></i> JEMPUT (NAIK)
+                                        <i class="bi bi-box-arrow-in-right fs-5"></i> SISWA NAIK
                                     </button>
                                 </form>
                             </div>
@@ -226,7 +267,7 @@
                             </div>
                         </div>
 
-                    {{-- 2. Sudah Naik & Perjalanan Sore (Tombol Turun) --}}
+                    {{-- KONDISI 3: Status Picked Up (Sudah Naik & Perjalanan Sore - Tombol Turun) --}}
                     @elseif($p->status == 'picked_up' && $trip->type != 'pickup') 
                         <form action="{{ route('driver.passenger.dropoff', $p->id) }}" method="POST">
                             @csrf
@@ -246,7 +287,6 @@
     </div>
 </div>
 
-{{-- SCRIPT: Auto Refresh & Jam --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const refreshTime = 5; 

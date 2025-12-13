@@ -20,32 +20,6 @@ use App\Http\Controllers\DriverDashboardController;
 use App\Http\Controllers\TripPassengerController;
 use App\Http\Controllers\ParentDashboardController;
 
-use Illuminate\Support\Facades\Artisan;
-
-Route::get('/setup-hosting-khusus', function() {
-    try {
-        Artisan::call('storage:link');
-        $link = 'Storage Link: Berhasil. ';
-    } catch (\Exception $e) {
-        $link = 'Storage Link: Gagal/Sudah ada. ';
-    }
-
-    try {
-        Artisan::call('migrate', ['--force' => true]);
-        $migrate = 'Migration: Berhasil. ';
-    } catch (\Exception $e) {
-        $migrate = 'Migration: Gagal (' . $e->getMessage() . '). ';
-    }
-
-    try {
-        Artisan::call('optimize:clear');
-        $cache = 'Cache Clear: Berhasil.';
-    } catch (\Exception $e) {
-        $cache = 'Cache Clear: Gagal.';
-    }
-
-    return $link . $migrate . $cache;
-});
 // ====================================================
 // 1. ROUTE PUBLIK (TIDAK PERLU LOGIN)
 // ====================================================
@@ -118,6 +92,9 @@ Route::middleware(['auth'])->group(function () {
         // Fitur Bulk Edit (Edit Rangkaian)
         Route::get('/schedules/bulk-edit/{id}', [ScheduleController::class, 'editBulk'])->name('schedules.editBulk');
         Route::put('/schedules/bulk-update/{id}', [ScheduleController::class, 'updateBulk'])->name('schedules.updateBulk');
+        
+        // [BARU] Hapus Rangkaian (Bulk Delete)
+        Route::delete('/schedules/bulk-delete/{id}', [ScheduleController::class, 'destroyBulk'])->name('schedules.destroyBulk');
 
         // AJAX Helpers (Cek Bentrok & Komplek)
         Route::post('/check-availability', [ScheduleController::class, 'checkAvailability'])->name('schedules.check');
@@ -137,6 +114,7 @@ Route::middleware(['auth'])->group(function () {
 
         // --- OPERASIONAL PERJALANAN ---
         Route::get('/trip/{tripId}/process', [TripPassengerController::class, 'process'])->name('driver.trip.process');
+        Route::post('/passenger/{id}/waiting', [TripPassengerController::class, 'waiting'])->name('driver.passenger.waiting');
         Route::post('/passenger/{id}/pickup', [TripPassengerController::class, 'pickup'])->name('driver.passenger.pickup');
         Route::post('/passenger/{id}/skip', [TripPassengerController::class, 'skip'])->name('driver.passenger.skip');
         Route::post('/passenger/{id}/dropoff', [TripPassengerController::class, 'dropoff'])->name('driver.passenger.dropoff'); 

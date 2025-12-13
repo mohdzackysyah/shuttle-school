@@ -20,11 +20,19 @@
         $statusDesc = 'Status tidak diketahui';
 
         if($tripData->status == 'pending') {
-            $statusClass = 'bg-warning bg-opacity-10 text-warning border border-warning';
+            $statusClass = 'bg-info bg-opacity-10 text-info border border-info';
             $statusIcon = 'bi-hourglass-split';
             $statusText = 'MENUNGGU';
-            $statusDesc = 'Driver belum menjemput';
-        } elseif($tripData->status == 'picked_up') {
+            $statusDesc = 'Driver dalam perjalanan';
+        } 
+        // [BARU] STATUS WAITING
+        elseif($tripData->status == 'waiting') {
+            $statusClass = 'bg-warning border border-warning shadow-sm animate__animated animate__pulse animate__infinite';
+            $statusIcon = 'bi-geo-alt-fill text-dark';
+            $statusText = 'DRIVER SAMPAI!';
+            $statusDesc = 'Driver menunggu di depan rumah';
+        }
+        elseif($tripData->status == 'picked_up') {
             $statusClass = 'bg-primary bg-opacity-10 text-primary border border-primary';
             $statusIcon = 'bi-bus-front';
             $statusText = 'DI DALAM MOBIL';
@@ -43,8 +51,10 @@
     @endphp
 
     <div class="text-center py-4 rounded-3 mb-3 {{ $statusClass }}">
-        <h2 class="fw-bold mb-0"><i class="bi {{ $statusIcon }}"></i> {{ $statusText }}</h2>
-        <small>{{ $statusDesc }}</small>
+        <h2 class="fw-bold mb-0 {{ $tripData->status == 'waiting' ? 'text-dark' : '' }}">
+            <i class="bi {{ $statusIcon }}"></i> {{ $statusText }}
+        </h2>
+        <small class="{{ $tripData->status == 'waiting' ? 'text-dark fw-bold' : '' }}">{{ $statusDesc }}</small>
         
         @if($tripData->status == 'dropped_off' && $tripData->dropped_at)
             <div class="mt-1 fw-bold small">
@@ -60,7 +70,7 @@
             </a>
         @endif
 
-        @if($tripData->status == 'pending')
+        @if($tripData->status == 'pending' || $tripData->status == 'waiting')
             <form action="{{ route('parents.set_absent', $tripData->student_id) }}" method="POST" onsubmit="return confirm('Yakin ingin mengizinkan anak?')">
                 @csrf
                 <button class="btn btn-outline-danger w-100 fw-bold">

@@ -14,7 +14,8 @@
             </a>
         </div>
 
-        <form action="{{ route('schedules.updateBulk', $firstSchedule->route_id) }}" method="POST">
+        {{-- PERBAIKAN DISINI: Menggunakan $firstSchedule->id (ID Jadwal), BUKAN route_id --}}
+        <form action="{{ route('schedules.updateBulk', $firstSchedule->id) }}" method="POST">
             @csrf
             @method('PUT')
 
@@ -28,6 +29,7 @@
                         <div class="col-md-4">
                             <label class="form-label fw-bold small text-uppercase">Rute (Read-only)</label>
                             <input type="text" class="form-control" value="{{ $firstSchedule->route->name }}" disabled>
+                            {{-- Input hidden route_id tetap diperlukan untuk logika controller jika buat jadwal baru --}}
                             <input type="hidden" name="route_id" value="{{ $firstSchedule->route_id }}">
                         </div>
 

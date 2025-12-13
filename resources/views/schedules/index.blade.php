@@ -79,11 +79,21 @@
                             </div>
                         </button>
 
-                        {{-- TOMBOL EDIT RANGKAIAN (Desktop: Kanan, Mobile: Bawah) --}}
-                        <div class="p-3 d-flex align-items-center border-start border-light bg-light bg-opacity-10">
-                            <a href="{{ route('schedules.editBulk', $firstItem->id) }}" class="btn btn-warning text-dark fw-bold shadow-sm text-nowrap rounded-pill px-3">
+                        {{-- TOMBOL AKSI RANGKAIAN (Desktop: Kanan, Mobile: Bawah) --}}
+                        <div class="p-3 d-flex align-items-center border-start border-light bg-light bg-opacity-10 gap-2">
+                            {{-- Tombol Edit --}}
+                            <a href="{{ route('schedules.editBulk', $firstItem->id) }}" class="btn btn-warning text-dark fw-bold shadow-sm text-nowrap rounded-pill px-3" title="Edit seluruh hari">
                                 <i class="bi bi-pencil-square me-1"></i> <span class="d-none d-lg-inline">Edit Rangkaian</span><span class="d-lg-none">Edit</span>
                             </a>
+
+                            {{-- [BARU] Tombol Hapus Rangkaian --}}
+                            <form action="{{ route('schedules.destroyBulk', $firstItem->id) }}" method="POST" onsubmit="return confirm('PERINGATAN: Apakah Anda yakin ingin menghapus SELURUH RANGKAIAN jadwal ini?\n\nSemua jadwal (Senin-Minggu) untuk Rute, Driver, dan Mobil ini akan dihapus permanen.');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn btn-danger text-white fw-bold shadow-sm text-nowrap rounded-pill px-3" title="Hapus seluruh hari">
+                                    <i class="bi bi-trash me-1"></i> <span class="d-none d-lg-inline">Hapus</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
