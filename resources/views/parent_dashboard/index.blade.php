@@ -2,6 +2,8 @@
 
 @section('content')
 <div class="container py-4">
+    
+    {{-- 1. WELCOME HEADER --}}
     <div class="welcome-header mb-4">
         <div class="row align-items-center">
             <div class="col-lg-8">
@@ -17,6 +19,38 @@
         </div>
     </div>
 
+    {{-- 2. SECTION PENGUMUMAN (BARU) --}}
+    @if(isset($announcements) && $announcements->count() > 0)
+    <div class="mb-4">
+        <h6 class="fw-bold text-secondary mb-3 ps-2 border-start border-primary border-4" style="line-height: 1;">
+            Informasi & Pengumuman
+        </h6>
+        <div class="row g-3">
+            @foreach($announcements as $info)
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                    <div class="card-body py-3 position-relative">
+                        {{-- Dekorasi Garis Biru di Kiri --}}
+                        <div class="position-absolute top-0 start-0 bottom-0 bg-primary" style="width: 4px;"></div>
+                        
+                        <div class="ps-2">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold text-primary mb-0">{{ $info->title }}</h6>
+                                <span class="badge bg-light text-secondary border rounded-pill fw-normal" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock me-1"></i>{{ $info->created_at->translatedFormat('d M, H:i') }}
+                                </span>
+                            </div>
+                            <p class="text-dark small mb-0 opacity-75" style="line-height: 1.6; white-space: pre-line;">{{ $info->content }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- 3. JUDUL SECTION STATUS --}}
     <div class="section-title mb-4">
         <div class="d-flex align-items-center">
             <div class="title-indicator"></div>
@@ -28,12 +62,14 @@
         </div>
     </div>
 
+    {{-- 4. CONTAINER AUTO REFRESH --}}
     <div id="auto-refresh-container">
         <div class="row">
             @forelse($students as $student)
             <div class="col-12 mb-4">
                 <div class="student-card">
                     
+                    {{-- Student Header --}}
                     <div class="student-header">
                         <div class="d-flex align-items-center">
                             <div class="student-avatar me-3">
@@ -55,8 +91,10 @@
                         </div>
                     </div>
 
+                    {{-- Student Body (Status Trip) --}}
                     <div class="student-body">
                         
+                        {{-- Desktop View (Side by Side) --}}
                         <div class="d-none d-md-block">
                             <div class="row g-4">
                                 <div class="col-md-6">
@@ -81,7 +119,7 @@
                             </div>
                         </div>
 
-                        {{-- Mobile Tabs View --}}
+                        {{-- Mobile View (Tabs) --}}
                         <div class="d-md-none">
                             <ul class="nav nav-tabs nav-fill student-tabs mb-3" id="tabs-{{ $student->id }}" role="tablist">
                                 <li class="nav-item" role="presentation">
@@ -150,7 +188,6 @@
         transition: all 0.3s ease;
     }
 
-    /* UBAH: Gradient Biru Konsisten */
     .welcome-header::before {
         content: '';
         position: absolute;
@@ -166,11 +203,11 @@
         box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
     }
 
-    /* UBAH: Badge Tanggal Biru Muda */
+    /* Badge Tanggal */
     .badge-date {
         display: inline-block;
-        background: linear-gradient(135deg, #e0f2fe, #bae6fd); /* Biru muda */
-        color: #0369a1; /* Biru tua */
+        background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+        color: #0369a1;
         padding: 0.6rem 1.5rem;
         border-radius: 50px;
         font-weight: 600;
@@ -207,7 +244,6 @@
         position: relative;
     }
 
-    /* UBAH: Garis Atas Card Biru */
     .student-card::before {
         content: '';
         position: absolute;
@@ -232,7 +268,7 @@
     /* Student Header */
     .student-header {
         padding: 2rem 2.5rem;
-        background: linear-gradient(135deg, #f8fafc, #f1f5f9); /* Lebih netral/putih keabu-abuan agar clean */
+        background: linear-gradient(135deg, #f8fafc, #f1f5f9);
         border-bottom: 1px solid rgba(37, 99, 235, 0.1);
     }
 
@@ -256,15 +292,14 @@
         object-fit: cover;
     }
 
-    /* UBAH: Placeholder Avatar Biru */
     .avatar-placeholder {
         width: 100%;
         height: 100%;
-        background: linear-gradient(135deg, #dbeafe, #bfdbfe); /* Biru lembut */
+        background: linear-gradient(135deg, #dbeafe, #bfdbfe);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #2563eb; /* Biru primary */
+        color: #2563eb;
         font-size: 2.5rem;
     }
 
@@ -283,7 +318,6 @@
         margin-top: 0.3rem;
     }
 
-    /* UBAH: Icon Lokasi Biru */
     .student-location i {
         color: #2563eb; 
     }
@@ -313,15 +347,13 @@
         letter-spacing: 0.5px;
     }
 
-    /* UBAH: Icon Pagi jadi Biru (biar senada) atau Orange (biar kontras tapi tetap clean)
-       Disini saya ubah ke Primary Blue agar sesuai permintaan "dominan biru" */
     .trip-title i {
         color: #2563eb; 
         font-size: 1.1rem;
     }
 
     .trip-title-afternoon {
-        color: #0ea5e9; /* Sky blue untuk sore */
+        color: #0ea5e9;
     }
 
     .trip-title-afternoon i {
@@ -366,7 +398,6 @@
         overflow: hidden;
     }
 
-    /* UBAH: Garis Empty State Biru */
     .empty-state::before {
         content: '';
         position: absolute;
@@ -393,82 +424,33 @@
 
     /* Responsive */
     @media (max-width: 767.98px) {
-        .welcome-header {
-            padding: 1.5rem;
-        }
-
-        .student-header {
-            padding: 1.5rem;
-        }
-
-        .student-body {
-            padding: 1.5rem;
-        }
-
-        .student-avatar {
-            width: 65px;
-            height: 65px;
-            border-radius: 16px;
-        }
-
-        .student-name {
-            font-size: 1.3rem;
-        }
-
-        .badge-date {
-            font-size: 0.85rem;
-            padding: 0.5rem 1rem;
-        }
-
-        .empty-state {
-            padding: 3.5rem 1.5rem;
-        }
-
-        .empty-icon {
-            width: 90px;
-            height: 90px;
-            font-size: 2.8rem;
-        }
-
-        .trip-title {
-            font-size: 0.9rem;
-        }
-        
-        .border-end-desktop {
-            border-right: none;
-        }
+        .welcome-header { padding: 1.5rem; }
+        .student-header { padding: 1.5rem; }
+        .student-body { padding: 1.5rem; }
+        .student-avatar { width: 65px; height: 65px; border-radius: 16px; }
+        .student-name { font-size: 1.3rem; }
+        .badge-date { font-size: 0.85rem; padding: 0.5rem 1rem; }
+        .empty-state { padding: 3.5rem 1.5rem; }
+        .empty-icon { width: 90px; height: 90px; font-size: 2.8rem; }
+        .trip-title { font-size: 0.9rem; }
+        .border-end-desktop { border-right: none; }
     }
 
     @media (max-width: 575.98px) {
-        .student-tabs .nav-link {
-            font-size: 0.9rem;
-            padding: 0.7rem 0.8rem;
-        }
-
-        .trip-title {
-            font-size: 0.85rem;
-        }
-
-        .student-name {
-            font-size: 1.15rem;
-        }
-
-        .student-avatar {
-            width: 60px;
-            height: 60px;
-        }
+        .student-tabs .nav-link { font-size: 0.9rem; padding: 0.7rem 0.8rem; }
+        .trip-title { font-size: 0.85rem; }
+        .student-name { font-size: 1.15rem; }
+        .student-avatar { width: 60px; height: 60px; }
     }
 </style>
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // INTERVAL 3 DETIK (3000ms)
         const REFRESH_INTERVAL = 3000; 
-        
         const containerId = 'auto-refresh-container';
         const loadingIndicator = document.getElementById('loading-indicator');
         
-        // Simpan state tab yang aktif (untuk mobile)
+        // Simpan state tab yang aktif
         let activeTabs = {};
 
         // Listener: Tangkap tab yang diklik user
@@ -480,9 +462,7 @@
             }
         });
 
-        // Interval untuk melakukan fetch data baru
         setInterval(() => {
-            // Tampilkan loading (opsional)
             if(loadingIndicator) loadingIndicator.classList.remove('d-none');
 
             fetch(window.location.href)
@@ -494,10 +474,9 @@
                     const currentContainer = document.getElementById(containerId);
 
                     if (newContent && currentContainer) {
-                        // 1. Ganti konten HTML dengan yang baru
                         currentContainer.innerHTML = newContent.innerHTML;
 
-                        // 2. Kembalikan posisi tab yang sedang dibuka user (Persistence)
+                        // Kembalikan posisi tab
                         Object.keys(activeTabs).forEach(studentId => {
                             const type = activeTabs[studentId];
                             if(type) {
@@ -505,14 +484,11 @@
                                 const tabPane = document.getElementById(`${type}-${studentId}`);
                                 
                                 if(tabBtn && tabPane) {
-                                    // Reset active classes di container siswa tersebut
                                     const container = tabBtn.closest('.student-body');
                                     if(container) {
                                         container.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
                                         container.querySelectorAll('.tab-pane').forEach(el => el.classList.remove('show', 'active'));
                                     }
-
-                                    // Set active kembali
                                     tabBtn.classList.add('active');
                                     tabPane.classList.add('show', 'active');
                                 }
@@ -522,7 +498,6 @@
                 })
                 .catch(err => console.error('Auto refresh error:', err))
                 .finally(() => {
-                    // Sembunyikan loading
                     if(loadingIndicator) loadingIndicator.classList.add('d-none');
                 });
         }, REFRESH_INTERVAL);

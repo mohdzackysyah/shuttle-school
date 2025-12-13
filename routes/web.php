@@ -99,6 +99,11 @@ Route::middleware(['auth'])->group(function () {
         // AJAX Helpers (Cek Bentrok & Komplek)
         Route::post('/check-availability', [ScheduleController::class, 'checkAvailability'])->name('schedules.check');
         Route::get('/get-complexes/{route_id}', [ScheduleController::class, 'getComplexesByRoute'])->name('api.get_complexes');
+       
+        // Fitur Pengumuman
+        Route::resource('announcements', \App\Http\Controllers\AnnouncementController::class)->except(['show', 'edit', 'update']);
+        Route::post('/announcements/{id}/toggle', [\App\Http\Controllers\AnnouncementController::class, 'toggle'])->name('announcements.toggle');
+   
     });
 
 

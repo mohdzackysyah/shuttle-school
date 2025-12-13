@@ -556,11 +556,11 @@
                     <h5 class="text-white mb-4 fw-semibold">Hubungi Kami</h5>
                     <div class="d-flex mb-3">
                         <i class="bi bi-geo-alt me-3 text-primary fs-5"></i>
-                        <span class="text-secondary">Jl. Pendidikan No. 123, Jakarta Selatan, Indonesia</span>
+                        <span class="text-secondary">Jl. Pramuka, Bengkalis, Riau</span>
                     </div>
                     <div class="d-flex mb-3">
                         <i class="bi bi-envelope me-3 text-primary fs-5"></i>
-                        <span class="text-secondary">support@shuttleapp.com</span>
+                        <span class="text-secondary">support@hepigo.com</span>
                     </div>
                     <div class="d-flex">
                         <i class="bi bi-telephone me-3 text-primary fs-5"></i>

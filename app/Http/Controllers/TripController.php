@@ -6,7 +6,7 @@ use App\Models\Trip;
 use App\Models\TripPassenger;
 use App\Models\User;
 use App\Models\Shuttle;
-use App\Models\Route;
+use App\Models\Route; 
 use App\Models\Student;
 use App\Models\Schedule;
 use Illuminate\Http\Request;
@@ -15,10 +15,42 @@ use Illuminate\Support\Facades\Auth;
 
 class TripController extends Controller
 {
-    public function index()
+    /**
+     * Menampilkan daftar riwayat trip dengan fitur filter.
+     */
+    public function index(Request $request)
     {
-        $trips = Trip::with(['driver', 'shuttle', 'route'])->orderBy('date', 'desc')->get();
-        return view('trips.index', compact('trips'));
+        // 1. Ambil data master Rute untuk Dropdown Filter
+        $routes = Route::orderBy('name')->get();
+
+        // 2. Mulai Query Builder
+        $query = Trip::with(['driver', 'shuttle', 'route']);
+
+        // --- LOGIKA FILTER ---
+        
+        // Filter Rute
+        if ($request->filled('route_id')) {
+            $query->where('route_id', $request->route_id);
+        }
+
+        // Filter Tanggal Spesifik (Prioritas Utama jika diisi)
+        // Format input date HTML: YYYY-MM-DD
+        if ($request->filled('filter_date')) {
+            $query->whereDate('date', $request->filter_date);
+        }
+        // Filter Bulan & Tahun (Jika tanggal spesifik kosong, tapi bulan diisi)
+        // Format input month HTML: YYYY-MM
+        elseif ($request->filled('filter_month')) {
+            $date = Carbon::parse($request->filter_month);
+            $query->whereMonth('date', $date->month)
+                  ->whereYear('date', $date->year);
+        }
+
+        // 3. Eksekusi (Order by terbaru)
+        // Menggunakan paginate() agar halaman tidak berat jika data banyak
+        $trips = $query->orderBy('date', 'desc')->paginate(10)->withQueryString();
+
+        return view('trips.index', compact('trips', 'routes'));
     }
 
     public function create()

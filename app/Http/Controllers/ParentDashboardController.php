@@ -4,10 +4,11 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Storage; // Pastikan ini ada
+use Illuminate\Support\Facades\Storage; 
 use App\Models\Student;
 use App\Models\TripPassenger;
 use App\Models\Trip;
+use App\Models\Announcement; // <--- 1. Import Model Announcement
 use Carbon\Carbon;
 
 class ParentDashboardController extends Controller
@@ -20,6 +21,16 @@ class ParentDashboardController extends Controller
         $parent = Auth::user();
         if ($parent->role !== 'parent') return redirect('/')->with('error', 'Akses khusus Wali Murid.');
 
+        // --- AMBIL PENGUMUMAN (BARU) ---
+        // Mengambil pengumuman aktif untuk role 'parent' atau 'all'
+        // Filter tambahan: whereDate('created_at', Carbon::today()) -> Hanya muncul hari ini
+        $announcements = Announcement::where('is_active', true)
+                            ->whereIn('target_role', ['all', 'parent'])
+                            ->whereDate('created_at', Carbon::today()) // <--- LOGIKA HILANG BESOK
+                            ->latest()
+                            ->get();
+
+        // --- LOGIKA DATA SISWA & TRIP ---
         $students = Student::where('parent_id', $parent->id)->get();
         $today = Carbon::today();
 
@@ -47,7 +58,8 @@ class ParentDashboardController extends Controller
                 ->first();
         }
 
-        return view('parent_dashboard.index', compact('students'));
+        // Kirim $announcements ke view
+        return view('parent_dashboard.index', compact('students', 'announcements'));
     }
 
     public function ajaxStatus($studentId)
@@ -94,7 +106,6 @@ class ParentDashboardController extends Controller
         $passenger = TripPassenger::with(['trip.driver', 'trip.shuttle', 'trip.route', 'student'])->findOrFail($passengerId);
         
         // FIX: Gunakan intval() untuk memaksa kedua ID menjadi angka (Integer).
-        // Gunakan operator != agar tidak sensitif tipe data (misal "5" vs 5).
         if (intval($passenger->student->parent_id) != intval(Auth::id())) {
             return redirect()->route('parents.dashboard')->with('error', 'Akses ditolak.');
         }

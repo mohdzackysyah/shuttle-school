@@ -3,7 +3,7 @@
 @section('content')
 <div class="container-fluid px-0">
     
-    {{-- 1. HEADER HALAMAN --}}
+    {{-- 1. HEADER & PENCARIAN --}}
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
         <div class="mb-3 mb-md-0">
             <h3 class="fw-bold text-dark mb-1">
@@ -11,10 +11,39 @@
             </h3>
             <p class="text-muted mb-0">Kelola data siswa, lokasi penjemputan, dan relasi orang tua.</p>
         </div>
-        <a href="{{ route('students.create') }}" class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold">
-            <i class="bi bi-plus-lg me-2"></i> Tambah Siswa
-        </a>
+
+        <div class="d-flex gap-2">
+            {{-- Form Pencarian --}}
+            <form action="{{ route('students.index') }}" method="GET" class="d-flex">
+                <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
+                    <input type="text" name="search" class="form-control border-0 ps-4 bg-white" 
+                           placeholder="Cari ID atau Nama..." 
+                           value="{{ request('search') }}" 
+                           aria-label="Cari Siswa">
+                    <button class="btn btn-white border-0 text-primary px-3" type="submit">
+                        <i class="bi bi-search"></i>
+                    </button>
+                    @if(request('search'))
+                        <a href="{{ route('students.index') }}" class="btn btn-white border-0 text-danger px-3" title="Reset Filter">
+                            <i class="bi bi-x-circle"></i>
+                        </a>
+                    @endif
+                </div>
+            </form>
+
+            <a href="{{ route('students.create') }}" class="btn btn-primary rounded-pill shadow-sm px-4 fw-bold d-flex align-items-center">
+                <i class="bi bi-plus-lg me-2"></i> Tambah
+            </a>
+        </div>
     </div>
+
+    {{-- ALERT SUKSES --}}
+    @if(session('success'))
+        <div class="alert alert-success alert-dismissible fade show shadow-sm rounded-3 border-0 mb-4" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    @endif
 
     {{-- 2. TABEL CARD --}}
     <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
@@ -100,8 +129,13 @@
                                     <div class="bg-light rounded-circle p-3 mb-3">
                                         <i class="bi bi-mortarboard display-4 text-secondary"></i>
                                     </div>
-                                    <h5 class="fw-bold text-secondary">Data Siswa Kosong</h5>
-                                    <p class="text-muted small mb-0">Belum ada siswa yang terdaftar dalam sistem.</p>
+                                    @if(request('search'))
+                                        <h5 class="fw-bold text-secondary">Siswa tidak ditemukan</h5>
+                                        <p class="text-muted small mb-0">Tidak ada hasil untuk pencarian "{{ request('search') }}"</p>
+                                    @else
+                                        <h5 class="fw-bold text-secondary">Data Siswa Kosong</h5>
+                                        <p class="text-muted small mb-0">Belum ada siswa yang terdaftar dalam sistem.</p>
+                                    @endif
                                 </div>
                             </td>
                         </tr>
@@ -111,7 +145,7 @@
             </div>
 
             {{-- Pagination --}}
-            @if(method_exists($students, 'hasPages') && $students->hasPages())
+            @if($students->hasPages())
                 <div class="card-footer bg-white py-3 border-top">
                     {{ $students->links() }}
                 </div>

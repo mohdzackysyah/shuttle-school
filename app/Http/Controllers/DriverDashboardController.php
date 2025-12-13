@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\Schedule;
 use App\Models\Trip;
 use App\Models\Student;
+use App\Models\Announcement; // Pastikan Model Announcement di-import
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB; 
@@ -25,6 +26,22 @@ class DriverDashboardController extends Controller
         $todayEnglish = Carbon::now()->format('l');    
         $todayDate = Carbon::now()->format('Y-m-d');
 
+        // ============================================================
+        // LOGIKA PENGUMUMAN (UPDATE: HANYA HARI INI)
+        // ============================================================
+        // Filter: 
+        // 1. Status Aktif
+        // 2. Target Sesuai ('all' atau 'driver')
+        // 3. Tanggal Dibuat == Hari Ini (whereDate created_at)
+        $announcements = Announcement::where('is_active', true)
+                            ->whereIn('target_role', ['all', 'driver'])
+                            ->whereDate('created_at', Carbon::today()) // <--- LOGIKA HILANG BESOK
+                            ->latest()
+                            ->get();
+
+        // ============================================================
+        // LOGIKA JADWAL & TRIP
+        // ============================================================
         $rawSchedules = Schedule::with(['route', 'shuttle'])
                         ->where('driver_id', $user->id)
                         ->where('day_of_week', $todayEnglish)
@@ -77,10 +94,12 @@ class DriverDashboardController extends Controller
 
         $schedules = $tasks->sortBy('departure_time');
 
+        // Kirim data ke view
         return view('driver_dashboard.index', [
             'schedules' => $schedules,
             'today' => $todayIndo,
-            'todayDate' => $todayDate
+            'todayDate' => $todayDate,
+            'announcements' => $announcements 
         ]);
     }
 
@@ -106,7 +125,6 @@ class DriverDashboardController extends Controller
                         return $student->complex->name ?? 'Z'; 
                     });
         
-        // PERBAIKAN DISINI: Mengarah ke 'students' (bukan my_students)
         return view('driver_dashboard.students', compact('students'));
     }
 }

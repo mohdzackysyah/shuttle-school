@@ -10,10 +10,23 @@ use Illuminate\Validation\Rule;
 
 class DriverController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        // Ambil hanya driver
-        $drivers = User::where('role', 'driver')->with('driverProfile')->orderBy('name')->get();
+        // 1. Mulai Query: Ambil user dengan role 'driver' & relasi profilnya
+        $query = User::where('role', 'driver')->with('driverProfile');
+
+        // 2. Logika Pencarian (KHUSUS NAMA ATAU ID SAJA)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%"); // Hanya Nama atau ID
+            });
+        }
+
+        // 3. Eksekusi dengan Pagination (10 data per halaman)
+        $drivers = $query->orderBy('name')->paginate(10)->withQueryString();
+
         return view('drivers.index', compact('drivers'));
     }
 
@@ -29,17 +42,19 @@ class DriverController extends Controller
             'email' => 'required|email|unique:users',
             'phone' => 'required|string',
             'password' => 'required|min:6',
-            'license_number' => 'required|string', // Wajib untuk driver
+            'license_number' => 'required|string',
         ]);
 
+        // Buat User Akun
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
-            'role' => 'driver', // Otomatis set driver
+            'role' => 'driver',
         ]);
 
+        // Buat Data Detail Driver (SIM)
         Driver::create([
             'user_id' => $user->id,
             'license_number' => $request->license_number
@@ -50,7 +65,7 @@ class DriverController extends Controller
 
     public function edit($id)
     {
-        $driver = User::where('role', 'driver')->findOrFail($id);
+        $driver = User::where('role', 'driver')->with('driverProfile')->findOrFail($id);
         return view('drivers.edit', compact('driver'));
     }
 

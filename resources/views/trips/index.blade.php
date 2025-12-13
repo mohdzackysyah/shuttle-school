@@ -3,21 +3,72 @@
 @section('content')
 <div class="container-fluid px-0">
 
-    {{-- 1. HEADER HALAMAN --}}
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-4">
-        <div class="mb-3 mb-md-0">
-            <h3 class="fw-bold text-dark mb-1">
-                <i class="bi bi-clock-history text-primary me-2"></i>Riwayat Perjalanan
-            </h3>
-            <p class="text-muted mb-0">Monitor status pelaksanaan dan histori perjalanan armada.</p>
-        </div>
-        
-        {{-- Filter Tanggal (Visual Only - Bisa diaktifkan nanti) --}}
-        <div class="d-none d-md-block">
-            <div class="input-group shadow-sm rounded-pill overflow-hidden bg-white">
-                <span class="input-group-text bg-white border-0 ps-3 text-muted"><i class="bi bi-calendar3"></i></span>
-                <input type="text" class="form-control border-0 bg-white" placeholder="Filter Tanggal" readonly style="max-width: 150px;">
+    {{-- 1. HEADER & FILTER --}}
+    <div class="card border-0 shadow-sm rounded-4 mb-4">
+        <div class="card-body p-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-center mb-3">
+                <div class="mb-3 mb-md-0">
+                    <h3 class="fw-bold text-dark mb-1">
+                        <i class="bi bi-clock-history text-primary me-2"></i>Riwayat Perjalanan
+                    </h3>
+                    <p class="text-muted mb-0">Filter dan cari data perjalanan armada sekolah.</p>
+                </div>
+                
+                {{-- Tombol Reset Filter (Muncul jika user sedang melakukan filter) --}}
+                @if(request('route_id') || request('filter_date') || request('filter_month'))
+                <div>
+                    <a href="{{ route('trips.index') }}" class="btn btn-outline-danger btn-sm rounded-pill px-3 transition-hover">
+                        <i class="bi bi-x-circle me-1"></i> Reset Filter
+                    </a>
+                </div>
+                @endif
             </div>
+
+            {{-- FORM FILTER --}}
+            <form action="{{ route('trips.index') }}" method="GET">
+                <div class="row g-3">
+                    
+                    {{-- Filter Rute --}}
+                    <div class="col-md-4">
+                        <label class="form-label small text-muted fw-bold text-uppercase">Pilih Rute</label>
+                        <select name="route_id" class="form-select border-0 bg-light py-2" onchange="this.form.submit()">
+                            <option value="">Semua Rute</option>
+                            @foreach($routes as $route)
+                                <option value="{{ $route->id }}" {{ request('route_id') == $route->id ? 'selected' : '' }}>
+                                    {{ $route->name }} ({{ $route->start_point }} - {{ $route->end_point }})
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Filter Tanggal Spesifik --}}
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted fw-bold text-uppercase">Tanggal Spesifik</label>
+                        <input type="date" name="filter_date" class="form-control border-0 bg-light py-2" 
+                               value="{{ request('filter_date') }}" 
+                               onchange="this.form.submit()">
+                    </div>
+
+                    {{-- Filter Bulan (Alternatif) --}}
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted fw-bold text-uppercase">Atau Pilih Bulan</label>
+                        <input type="month" name="filter_month" class="form-control border-0 bg-light py-2" 
+                               value="{{ request('filter_month') }}"
+                               {{ request('filter_date') ? 'disabled' : '' }} 
+                               onchange="this.form.submit()">
+                        @if(request('filter_date'))
+                            <div class="form-text text-muted fst-italic" style="font-size: 0.7rem">*Matikan tanggal untuk filter bulan</div>
+                        @endif
+                    </div>
+
+                    {{-- Tombol Cari Manual (Optional) --}}
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100 rounded-3 py-2 fw-bold shadow-sm">
+                            <i class="bi bi-search me-1"></i> Cari
+                        </button>
+                    </div>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -121,10 +172,10 @@
                             <td colspan="5" class="text-center py-5">
                                 <div class="d-flex flex-column align-items-center justify-content-center opacity-50">
                                     <div class="bg-light rounded-circle p-3 mb-3">
-                                        <i class="bi bi-clipboard-data display-4 text-secondary"></i>
+                                        <i class="bi bi-search display-4 text-secondary"></i>
                                     </div>
-                                    <h5 class="fw-bold text-secondary">Belum ada riwayat</h5>
-                                    <p class="text-muted small mb-0">Data perjalanan akan muncul di sini setelah jadwal dibuat.</p>
+                                    <h5 class="fw-bold text-secondary">Data Tidak Ditemukan</h5>
+                                    <p class="text-muted small mb-0">Tidak ada perjalanan yang cocok dengan filter tanggal/rute Anda.</p>
                                 </div>
                             </td>
                         </tr>
@@ -134,7 +185,7 @@
             </div>
 
             {{-- Pagination Check --}}
-            @if(method_exists($trips, 'hasPages') && $trips->hasPages())
+            @if($trips->hasPages())
                 <div class="card-footer bg-white py-3 border-top">
                     {{ $trips->links() }}
                 </div>
@@ -151,6 +202,10 @@
     }
     .table-hover tbody tr:hover {
         background-color: #f8f9fa;
+    }
+    .transition-hover:hover {
+        background-color: #dc3545;
+        color: white;
     }
     
     /* Animasi kedip halus untuk status aktif */

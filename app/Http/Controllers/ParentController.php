@@ -10,18 +10,28 @@ use Illuminate\Validation\Rule;
 
 class ParentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         // 1. Cek Keamanan: Hanya Admin yang boleh masuk sini
         if (Auth::user()->role !== 'admin') {
-            return redirect()->route('parents.dashboard'); // Tendang user biasa
+            return redirect()->route('parents.dashboard'); 
         }
 
-        // 2. Ambil data wali murid
-        $parents = User::where('role', 'parent')->orderBy('name')->get();
+        // 2. Mulai Query
+        $query = User::where('role', 'parent');
 
-        // 3. Tampilkan View ADMIN (Tabel)
-        // Pastikan ini: 'parents.index' 
+        // 3. Logika Pencarian (Nama atau ID)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%");
+            });
+        }
+
+        // 4. Eksekusi dengan Pagination
+        $parents = $query->orderBy('name')->paginate(10)->withQueryString();
+
         return view('parents.index', compact('parents'));
     }
 

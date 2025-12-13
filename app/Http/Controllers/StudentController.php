@@ -5,17 +5,33 @@ namespace App\Http\Controllers;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Complex;
-use App\Models\Schedule; // Tambahkan ini
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 
 class StudentController extends Controller
 {
-    // ... method index, create, store, edit, update, destroy biarkan saja ...
-    
-    public function index()
+    /**
+     * Menampilkan daftar siswa dengan fitur pencarian (Nama & ID).
+     */
+    public function index(Request $request)
     {
-        $students = Student::with(['parent', 'complex'])->latest()->get();
+        // 1. Mulai Query dengan Relasi
+        $query = Student::with(['parent', 'complex']);
+
+        // 2. Logika Pencarian (Nama atau ID)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('id', 'like', "%{$search}%");
+            });
+        }
+
+        // 3. Eksekusi dengan Pagination
+        // 'latest()' mengurutkan dari yang terbaru dibuat
+        $students = $query->latest()->paginate(10)->withQueryString();
+
         return view('students.index', compact('students'));
     }
 
@@ -89,15 +105,13 @@ class StudentController extends Controller
         return redirect()->route('students.index')->with('success', 'Data siswa dihapus.');
     }
 
-    // --- FITUR BARU: PENCARIAN & DETAIL ---
+    // --- FITUR PENCARIAN KHUSUS & DETAIL (Biarkan Tetap Ada) ---
 
-    // 1. Tampilkan Halaman Pencarian
     public function search()
     {
         return view('students.search');
     }
 
-    // 2. Proses Pencarian ID/Nama
     public function find(Request $request)
     {
         $request->validate([
@@ -106,7 +120,6 @@ class StudentController extends Controller
 
         $keyword = $request->keyword;
 
-        // Cari berdasarkan ID atau Nama
         $student = Student::where('id', $keyword)
                     ->orWhere('name', 'LIKE', "%{$keyword}%")
                     ->first();
@@ -118,14 +131,10 @@ class StudentController extends Controller
         }
     }
 
-    // 3. Tampilkan Detail Lengkap
     public function show($id)
     {
-        // Ambil data siswa dengan relasi lengkap
         $student = Student::with(['parent', 'complex'])->findOrFail($id);
         
-        // Ambil Jadwal Rutin Siswa Ini (Logika Baru)
-        // Kita ambil dari relasi 'schedules' yang sudah kita buat di Model Student (via pivot)
         $schedules = $student->schedules()
                         ->with(['driver', 'shuttle', 'route'])
                         ->orderByRaw("FIELD(day_of_week, 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')")

@@ -121,7 +121,38 @@
         </div>
     </div>
 
-    {{-- 2. DAFTAR TUGAS --}}
+    {{-- 2. SECTION PENGUMUMAN (BARU) --}}
+    @if(isset($announcements) && $announcements->count() > 0)
+    <div class="mb-4">
+        <h6 class="fw-bold text-secondary mb-3 ps-2 border-start border-primary border-4" style="line-height: 1;">
+            Informasi & Pengumuman
+        </h6>
+        <div class="row g-3">
+            @foreach($announcements as $info)
+            <div class="col-md-12">
+                <div class="card border-0 shadow-sm rounded-4 bg-white overflow-hidden">
+                    <div class="card-body py-3 position-relative">
+                        {{-- Dekorasi Garis Biru di Kiri --}}
+                        <div class="position-absolute top-0 start-0 bottom-0 bg-primary" style="width: 4px;"></div>
+                        
+                        <div class="ps-2">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <h6 class="fw-bold text-primary mb-0">{{ $info->title }}</h6>
+                                <span class="badge bg-light text-secondary border rounded-pill fw-normal" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock me-1"></i>{{ $info->created_at->translatedFormat('d M, H:i') }}
+                                </span>
+                            </div>
+                            <p class="text-dark small mb-0 opacity-75" style="line-height: 1.6; white-space: pre-line;">{{ $info->content }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
+
+    {{-- 3. DAFTAR TUGAS --}}
     @if($schedules->isEmpty())
         {{-- State Kosong --}}
         <div class="text-center py-5">
@@ -215,7 +246,7 @@
     <div style="height: 60px;"></div> {{-- Spacer Footer --}}
 </div>
 
-{{-- SCRIPT: JAM & REFRESH (5 DETIK) --}}
+{{-- SCRIPT: JAM & REFRESH (60 DETIK) --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Config

@@ -49,7 +49,13 @@
                 <span class="menu-text">Dashboard</span>
             </a>
 
-            {{-- 2. OPERASIONAL --}}
+            {{-- [BARU] 2. PENGUMUMAN --}}
+            <a href="{{ route('announcements.index') }}" class="list-group-item {{ request()->routeIs('announcements.*') ? 'active' : '' }}" title="Pengumuman">
+                <i class="bi bi-megaphone-fill"></i>
+                <span class="menu-text">Pengumuman</span>
+            </a>
+
+            {{-- 3. OPERASIONAL --}}
             <a href="javascript:void(0)" data-bs-toggle="collapse" data-bs-target="#submenuOperasional" 
                aria-expanded="{{ $isOperasionalActive ? 'true' : 'false' }}" 
                class="list-group-item d-flex justify-content-between align-items-center {{ $isOperasionalActive ? 'active-parent' : '' }}" 
@@ -77,11 +83,11 @@
                 </div>
             </div>
 
-            {{-- 3. DATA MASTER --}}
+            {{-- 4. DATA MASTER --}}
             <a href="javascript:void(0)" data-bs-toggle="collapse" data-bs-target="#submenuDataMaster" 
-                aria-expanded="{{ $isDataMasterActive ? 'true' : 'false' }}" 
-                class="list-group-item d-flex justify-content-between align-items-center {{ $isDataMasterActive ? 'active-parent' : '' }}" 
-                title="Data Master">
+               aria-expanded="{{ $isDataMasterActive ? 'true' : 'false' }}" 
+               class="list-group-item d-flex justify-content-between align-items-center {{ $isDataMasterActive ? 'active-parent' : '' }}" 
+               title="Data Master">
                  <div class="d-flex align-items-center gap-2">
                      <i class="bi bi-database-fill"></i>
                      <span class="menu-text">Data Master</span>
@@ -105,11 +111,11 @@
                  </div>
              </div>
 
-            {{-- 4. PENGGUNA --}}
+            {{-- 5. PENGGUNA --}}
             <a href="javascript:void(0)" data-bs-toggle="collapse" data-bs-target="#submenuPengguna" 
-                aria-expanded="{{ $isPenggunaActive ? 'true' : 'false' }}" 
-                class="list-group-item d-flex justify-content-between align-items-center {{ $isPenggunaActive ? 'active-parent' : '' }}" 
-                title="Pengguna">
+               aria-expanded="{{ $isPenggunaActive ? 'true' : 'false' }}" 
+               class="list-group-item d-flex justify-content-between align-items-center {{ $isPenggunaActive ? 'active-parent' : '' }}" 
+               title="Pengguna">
                  <div class="d-flex align-items-center gap-2">
                      <i class="bi bi-people-fill"></i>
                      <span class="menu-text">Pengguna</span>
