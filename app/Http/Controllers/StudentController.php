@@ -50,6 +50,8 @@ class StudentController extends Controller
             'complex_id' => 'required',
             'address_note' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $data = $request->all();
@@ -79,6 +81,8 @@ class StudentController extends Controller
             'complex_id' => 'required',
             'address_note' => 'nullable|string',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
 
         $data = $request->all();

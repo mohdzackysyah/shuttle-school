@@ -131,6 +131,7 @@ Route::middleware(['auth'])->group(function () {
 
         // --- OPERASIONAL PERJALANAN ---
         Route::get('/trip/{tripId}/process', [TripPassengerController::class, 'process'])->name('driver.trip.process');
+        Route::post('/trip/{tripId}/location', [TripPassengerController::class, 'updateLocation'])->name('driver.trip.location.update');
         
         // Route duplikat khusus driver
         Route::post('/passenger/{id}/waiting', [TripPassengerController::class, 'waiting'])->name('driver.passenger.waiting');

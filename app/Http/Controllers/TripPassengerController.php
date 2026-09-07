@@ -24,10 +24,16 @@ class TripPassengerController extends Controller
         ])->findOrFail($tripId);
 
         if (Auth::user()->id != $trip->driver_id) {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+            }
             return redirect()->route('driver.dashboard')->with('error', 'Akses ditolak.');
         }
 
         if ($trip->status == 'finished') {
+            if (request()->ajax() || request()->wantsJson()) {
+                return response()->json(['success' => false, 'message' => 'Perjalanan ini sudah selesai.'], 400);
+            }
             return redirect()->route('driver.dashboard')->with('success', 'Perjalanan ini sudah selesai.');
         }
 
@@ -35,10 +41,56 @@ class TripPassengerController extends Controller
             $trip->update(['status' => 'active']);
         }
 
+        $passengers = $trip->passengers;
+
+        // Hitung progress
+        $total = $passengers->count();
+        $done = $passengers->filter(function($p) {
+            return $p->status != 'pending' && $p->status != 'waiting';
+        })->count();
+        $percent = $total > 0 ? ($done / $total) * 100 : 0;
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'html' => view('driver_dashboard.partials.passenger_list', compact('trip', 'passengers'))->render(),
+                'percent' => $percent,
+                'done' => $done,
+                'total' => $total
+            ]);
+        }
+
         return view('driver_dashboard.perjalanan', [
             'trip' => $trip,
-            'passengers' => $trip->passengers
+            'passengers' => $passengers,
+            'percent' => $percent,
+            'done' => $done,
+            'total' => $total
         ]);
+    }
+
+    /**
+     * Update driver live location coordinates
+     */
+    public function updateLocation(Request $request, $tripId)
+    {
+        $trip = Trip::findOrFail($tripId);
+        
+        if (Auth::user()->id != $trip->driver_id) {
+            return response()->json(['success' => false, 'message' => 'Akses ditolak.'], 403);
+        }
+
+        $request->validate([
+            'latitude' => 'required|numeric',
+            'longitude' => 'required|numeric'
+        ]);
+
+        $trip->update([
+            'current_latitude' => $request->latitude,
+            'current_longitude' => $request->longitude
+        ]);
+
+        return response()->json(['success' => true, 'message' => 'Lokasi terupdate.']);
     }
 
     /**
@@ -52,6 +104,13 @@ class TripPassengerController extends Controller
         if ($passenger->status == 'pending') {
             $passenger->update([
                 'status' => 'waiting'
+            ]);
+        }
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Status diupdate: Menunggu di depan rumah.'
             ]);
         }
 
@@ -74,6 +133,13 @@ class TripPassengerController extends Controller
             $passenger->trip->update(['status' => 'active']);
         }
 
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Siswa berhasil naik/dijemput.'
+            ]);
+        }
+
         return back()->with('success', 'Siswa berhasil naik/dijemput.');
     }
 
@@ -87,6 +153,13 @@ class TripPassengerController extends Controller
         $passenger->update([
             'status' => 'skipped', 
         ]);
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Penjemputan siswa dilewati.'
+            ]);
+        }
 
         return back()->with('warning', 'Penjemputan siswa dilewati.');
     }
@@ -102,6 +175,13 @@ class TripPassengerController extends Controller
             'status' => 'dropped_off',
             'dropped_at' => Carbon::now()
         ]);
+
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Siswa telah sampai di rumah.'
+            ]);
+        }
 
         return back()->with('success', 'Siswa telah sampai di rumah.');
     }
@@ -127,6 +207,13 @@ class TripPassengerController extends Controller
             'status' => 'finished'
         ]);
         
+        if (request()->ajax() || request()->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Perjalanan selesai. Terima kasih!'
+            ]);
+        }
+
         return redirect()->route('driver.dashboard')
             ->with('success', 'Perjalanan selesai. Terima kasih!');
     }

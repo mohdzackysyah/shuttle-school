@@ -14,7 +14,9 @@ class Student extends Model
         'parent_id',
         'complex_id',
         'address_note',
-        'photo'
+        'photo',
+        'latitude',
+        'longitude'
     ];
 
     // Dimiliki oleh Orang Tua (User)

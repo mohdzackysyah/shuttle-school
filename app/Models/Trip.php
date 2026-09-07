@@ -15,7 +15,9 @@ class Trip extends Model
         'route_id',
         'date',
         'type', // pickup / dropoff
-        'status' // scheduled, active, finished
+        'status', // scheduled, active, finished
+        'current_latitude',
+        'current_longitude'
     ];
 
     // Relasi ke Driver

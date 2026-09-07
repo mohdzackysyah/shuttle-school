@@ -72,6 +72,12 @@ class ParentDashboardController extends Controller
             }
         }
 
+        if (request()->ajax()) {
+            return response()->json([
+                'html' => view('parent_dashboard.partials.students_list', compact('students'))->render(),
+            ]);
+        }
+
         return view('parent_dashboard.index', compact('students', 'announcements'));
     }
 
@@ -112,12 +118,30 @@ class ParentDashboardController extends Controller
         return view('parent_dashboard.children', compact('students'));
     }
 
-    public function showTripDetail($passengerId)
+    public function showTripDetail(Request $request, $passengerId)
     {
         $passenger = TripPassenger::with(['trip.driver', 'trip.shuttle', 'trip.route', 'student'])->findOrFail($passengerId);
         if (intval($passenger->student->parent_id) != intval(Auth::id())) {
+            if ($request->ajax()) {
+                return response()->json(['error' => 'Akses ditolak.'], 403);
+            }
             return redirect()->route('parents.dashboard')->with('error', 'Akses ditolak.');
         }
+
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => true,
+                'passenger_status' => $passenger->status,
+                'picked_at' => $passenger->picked_at ? \Carbon\Carbon::parse($passenger->picked_at)->format('H:i') : null,
+                'dropped_at' => $passenger->dropped_at ? \Carbon\Carbon::parse($passenger->dropped_at)->format('H:i') : null,
+                'trip_status' => $passenger->trip->status,
+                'driver_lat' => $passenger->trip->current_latitude,
+                'driver_lng' => $passenger->trip->current_longitude,
+                'student_lat' => $passenger->student->latitude,
+                'student_lng' => $passenger->student->longitude
+            ]);
+        }
+
         return view('parent_dashboard.trip_detail', compact('passenger'));
     }
 
@@ -133,7 +157,19 @@ class ParentDashboardController extends Controller
 
         if ($passenger) {
             $passenger->update(['status' => 'absent']);
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Status anak berhasil diubah menjadi Izin.'
+                ]);
+            }
             return back()->with('success', 'Status anak berhasil diubah menjadi Izin.');
+        }
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak bisa izin saat ini.'
+            ], 400);
         }
         return back()->with('error', 'Tidak bisa izin saat ini.');
     }
@@ -178,8 +214,14 @@ class ParentDashboardController extends Controller
         $request->validate([
             'address_note' => 'nullable|string|max:255',
             'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048', 
+            'latitude' => 'nullable|numeric',
+            'longitude' => 'nullable|numeric',
         ]);
-        $data = ['address_note' => $request->address_note];
+        $data = [
+            'address_note' => $request->address_note,
+            'latitude' => $request->latitude,
+            'longitude' => $request->longitude,
+        ];
         if ($request->hasFile('photo')) {
             if ($student->photo) Storage::disk('public')->delete($student->photo);
             $path = $request->file('photo')->store('student-photos', 'public');
